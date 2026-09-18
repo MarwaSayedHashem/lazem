@@ -36,6 +36,16 @@
         <p class="drawer-title"><i data-ic="settings"></i><span data-i18n="menuTitle">Settings</span></p>
         <a class="data-btn" href="help.html" style="margin-top:0.3rem"><i data-ic="help"></i><span data-i18n="guide">How to use</span></a>
 
+        <div id="authArea" hidden>
+          <p class="drawer-h"><i data-ic="user"></i><span data-i18n="menuAccount">Account</span></p>
+          <button type="button" class="data-btn" id="signInBtn"><i data-ic="login"></i><span data-i18n="signInGoogle">Sign in with Google</span></button>
+          <div id="signedIn" hidden>
+            <p class="acct-line"><i data-ic="cloud"></i> <span data-i18n="signedInAs">Signed in</span> · <b id="acctEmail"></b></p>
+            <button type="button" class="data-btn" id="signOutBtn"><i data-ic="logout"></i><span data-i18n="signOut">Sign out</span></button>
+          </div>
+          <p class="remind-note" data-i18n="syncNote">Sign in to sync your tasks across your devices.</p>
+        </div>
+
         <p class="drawer-h"><i data-ic="palette"></i><span data-i18n="menuTheme">Theme</span></p>
         <div class="themes" role="radiogroup" aria-label="Theme">
           <button type="button" data-set="classic" title="Classic" aria-label="Classic"></button>
@@ -174,10 +184,12 @@
     <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close"><i data-ic="close"></i></button>
     <img id="lightboxImg" alt="Attachment" />
   </div>
+  <script src="firebase-config.js"></script>
   <script src="icons.js"></script>
   <script src="i18n.js"></script>
   <script src="lexicon.js"></script>
   <script src="engine.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 </body>
 </html>

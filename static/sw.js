@@ -1,10 +1,12 @@
-const CACHE = "lazem-shell-v23";
+const CACHE = "lazem-shell-v24";
 const SHELL = [
   "./",
   "./index.html",
   "./help.html",
   "./styles.css",
+  "./firebase-config.js",
   "./app.js",
+  "./sync.js",
   "./icons.js",
   "./engine.js",
   "./lexicon.js",

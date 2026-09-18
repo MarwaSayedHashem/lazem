@@ -220,8 +220,17 @@ function loadTasks() {
   }
 }
 
+const UPDATED_STORE = "lazem.updated.v1";
+function markUpdated() {
+  try { localStorage.setItem(UPDATED_STORE, String(Date.now())); } catch {}
+}
+function syncTouch() {
+  markUpdated();
+  if (!window._lazemApplying && window.lazemSync && window.lazemSync.queuePush) window.lazemSync.queuePush();
+}
 function save() {
   localStorage.setItem(STORE, JSON.stringify(state.tasks));
+  syncTouch();
 }
 
 /* Custom shortcuts: user-defined one-tap quick-adds, stored locally. */
@@ -237,6 +246,7 @@ function loadShortcuts() {
 
 function saveShortcuts() {
   localStorage.setItem(SHORTCUTS_STORE, JSON.stringify(state.shortcuts));
+  syncTouch();
 }
 
 /* Activity log for the streak counter. */
@@ -1851,6 +1861,7 @@ function loadProfile() {
 
 function saveProfile(profile) {
   localStorage.setItem(PROFILE_STORE, JSON.stringify(profile));
+  syncTouch();
 }
 
 state.profile = loadProfile();
@@ -2062,6 +2073,54 @@ document.getElementById("interview").addEventListener("keydown", (e) => {
 });
 
 document.getElementById("remindBtn").addEventListener("click", toggleReminders);
+
+/* ---------- Cloud sync bridge (used by sync.js when Firebase is configured) ---------- */
+window.lazemGetSyncData = () => ({
+  tasks: state.tasks,
+  shortcuts: state.shortcuts,
+  profile: state.profile,
+  updatedAt: Number(localStorage.getItem(UPDATED_STORE)) || 0,
+});
+window.lazemApplyRemote = (data) => {
+  if (!data) return;
+  window._lazemApplying = true;
+  try {
+    if (Array.isArray(data.tasks)) { state.tasks = data.tasks; localStorage.setItem(STORE, JSON.stringify(state.tasks)); }
+    if (Array.isArray(data.shortcuts)) { state.shortcuts = data.shortcuts; localStorage.setItem(SHORTCUTS_STORE, JSON.stringify(state.shortcuts)); }
+    if (data.profile && typeof data.profile === "object") {
+      state.profile = data.profile;
+      localStorage.setItem(PROFILE_STORE, JSON.stringify(state.profile));
+      state.qIndex = state.profile.done ? QUESTIONS.length : 0;
+    }
+    if (data.updatedAt) localStorage.setItem(UPDATED_STORE, String(data.updatedAt));
+    renderShortcuts();
+    renderInterview();
+    render();
+    refreshCoach();
+    scheduleReminders();
+  } catch (e) {}
+  window._lazemApplying = false;
+};
+window.lazemAuthUI = (user) => {
+  const signInBtn = document.getElementById("signInBtn");
+  const signedIn = document.getElementById("signedIn");
+  const email = document.getElementById("acctEmail");
+  if (!signInBtn || !signedIn) return;
+  if (user) {
+    signInBtn.hidden = true;
+    signedIn.hidden = false;
+    if (email) email.textContent = user.email || user.name || "";
+  } else {
+    signInBtn.hidden = false;
+    signedIn.hidden = true;
+  }
+};
+(() => {
+  const inBtn = document.getElementById("signInBtn");
+  const outBtn = document.getElementById("signOutBtn");
+  if (inBtn) inBtn.addEventListener("click", () => window.lazemSync && window.lazemSync.signIn && window.lazemSync.signIn());
+  if (outBtn) outBtn.addEventListener("click", () => window.lazemSync && window.lazemSync.signOut && window.lazemSync.signOut());
+})();
 
 /* Insights panel toggle */
 (() => {
