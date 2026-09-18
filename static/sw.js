@@ -1,4 +1,4 @@
-const CACHE = "lazem-shell-v1";
+const CACHE = "lazem-shell-v2";
 const SHELL = [
   "./",
   "./index.html",
@@ -26,18 +26,24 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Network-first: always try fresh so new deploys show immediately;
+// fall back to cache only when offline.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
   event.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res.ok && SHELL.some((p) => url.pathname.endsWith(p.replace("./", "/")))) {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(req, copy));
-      }
-      return res;
-    }))
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then((hit) => hit || caches.match("./index.html"))
+      )
   );
 });
