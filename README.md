@@ -19,6 +19,10 @@ Household admin lives in chat screenshots and “I’ll remember”. That fails 
 - Categories: bill / medicine / health / school / work / errand / note — covering the whole household (kids' school, everyone's health, work deadlines)
 - Customizable shortcuts: add your own one-tap quick-adds (e.g. `gym 7am`, `call mom`) — stored locally
 - Smart related suggestions per category (e.g. an exam suggests a revision block; a health task suggests hydration)
+- Today's-focus ring + streak: a progress ring for what's due today and a completion streak, to keep momentum
+- Search across every task, and pin the ones that matter to the top
+- Backup & restore: export your inbox to a JSON file and restore it on another device — still no account, still local-first
+- Four themes (Classic / Dark / Girly / Simple), a slide-out settings drawer, and a crisp hand-built line-icon set (no image assets)
 
 ## Stack
 

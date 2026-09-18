@@ -1,9 +1,10 @@
-const CACHE = "lazem-shell-v2";
+const CACHE = "lazem-shell-v3";
 const SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./icons.js",
   "./engine.js",
   "./lexicon.js",
   "./i18n.js",

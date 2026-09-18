@@ -26,15 +26,16 @@
         <p class="tag" data-i18n="tag">Unstructured notes become typed work: bill, medication, errand.</p>
       </div>
       <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
-        <span></span><span></span><span></span>
+        <i data-ic="menu"></i>
       </button>
     </header>
 
     <div class="drawer" id="drawer" hidden>
       <aside class="drawer-panel" role="dialog" aria-label="Settings">
-        <button type="button" class="drawer-close" id="drawerClose" aria-label="Close">✕</button>
-        <p class="drawer-title" data-i18n="menuTitle">Settings</p>
-        <p class="drawer-h" data-i18n="menuTheme">Theme</p>
+        <button type="button" class="drawer-close" id="drawerClose" aria-label="Close"><i data-ic="close"></i></button>
+        <p class="drawer-title"><i data-ic="settings"></i><span data-i18n="menuTitle">Settings</span></p>
+
+        <p class="drawer-h"><i data-ic="palette"></i><span data-i18n="menuTheme">Theme</span></p>
         <div class="themes" role="radiogroup" aria-label="Theme">
           <button type="button" data-set="classic" title="Classic" aria-label="Classic"></button>
           <button type="button" data-set="dark" title="Dark" aria-label="Dark"></button>
@@ -42,49 +43,69 @@
           <button type="button" data-set="simple" title="Simple" aria-label="Simple"></button>
         </div>
         <p class="theme-name" id="themeName">Classic</p>
-        <p class="drawer-h" data-i18n="menuLang">Language</p>
+
+        <p class="drawer-h"><i data-ic="globe"></i><span data-i18n="menuLang">Language</span></p>
         <label class="sr" for="lang">Language</label>
         <select id="lang" class="lang" aria-label="Language"></select>
-        <p class="drawer-foot" data-i18n="footer">No account. Tasks stay in this browser. Marwa Hashem — Technical Lead, Cairo.</p>
+
+        <p class="drawer-h"><i data-ic="shield"></i><span data-i18n="menuData">Your data</span></p>
+        <div class="data-actions">
+          <button type="button" class="data-btn" id="exportBtn"><i data-ic="download"></i><span data-i18n="exportData">Export a backup</span></button>
+          <button type="button" class="data-btn" id="importBtn"><i data-ic="upload"></i><span data-i18n="importData">Restore from backup</span></button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden />
+        </div>
+
+        <p class="drawer-foot"><i data-ic="shield"></i><span data-i18n="footer">No account. Tasks stay in this browser. Marwa Hashem — Technical Lead, Cairo.</span></p>
       </aside>
     </div>
 
-    <section class="brief" id="brief">
-      <p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p>
+    <section class="dash" id="brief">
+      <article class="tile" id="tileWeather"><p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p></article>
+      <article class="tile" id="tileFx"></article>
+      <article class="tile focus" id="tileFocus" hidden></article>
+      <p class="clock" id="cairoClock"></p>
     </section>
 
     <section class="interview" id="interview" hidden></section>
     <section class="coach" id="coach" hidden></section>
 
     <form class="composer" id="composer">
-      <label class="sr" for="note" data-i18n="noteLabel">أضيفي مهمة</label>
+      <label class="sr" for="note" data-i18n="noteLabel">Add a task</label>
       <input id="note" name="note" autocomplete="off" maxlength="240"
              placeholder="electricity 5 Oct 850 EGP" />
-      <button type="submit" data-i18n="add">Parse</button>
+      <button type="submit"><i data-ic="plus"></i><span data-i18n="add">Parse</span></button>
     </form>
     <p class="hint" data-i18n="hint">Examples: electricity 5 Oct 850 EGP · medicine 9pm · buy milk</p>
     <div class="related" id="related" hidden></div>
     <div class="shortcuts" id="shortcuts"></div>
 
-    <nav class="filters" id="filters">
-      <button type="button" data-filter="open" class="on" data-i18n="filterOpen">Inbox</button>
-      <button type="button" data-filter="bill" data-i18n="filterBill">Bills</button>
-      <button type="button" data-filter="medicine" data-i18n="filterMed">Medication</button>
-      <button type="button" data-filter="health" data-i18n="filterHealth">Health</button>
-      <button type="button" data-filter="school" data-i18n="filterSchool">School</button>
-      <button type="button" data-filter="work" data-i18n="filterWork">Work</button>
-      <button type="button" data-filter="errand" data-i18n="filterErrand">Errands</button>
-      <button type="button" data-filter="done" data-i18n="filterDone">Done</button>
+    <div class="searchbar" id="searchbar">
+      <i data-ic="search"></i>
+      <input id="search" type="search" autocomplete="off" placeholder="Search tasks…" aria-label="Search tasks" />
+      <button type="button" class="clear-search" id="clearSearch" aria-label="Clear"><i data-ic="close"></i></button>
+    </div>
+
+    <nav class="filters" id="filters" aria-label="Filter tasks">
+      <button type="button" data-filter="open" class="on"><i data-ic="inbox"></i><span data-i18n="filterOpen">Inbox</span></button>
+      <button type="button" data-filter="bill"><i data-ic="bill"></i><span data-i18n="filterBill">Bills</span></button>
+      <button type="button" data-filter="medicine"><i data-ic="medicine"></i><span data-i18n="filterMed">Medication</span></button>
+      <button type="button" data-filter="health"><i data-ic="health"></i><span data-i18n="filterHealth">Health</span></button>
+      <button type="button" data-filter="school"><i data-ic="school"></i><span data-i18n="filterSchool">School</span></button>
+      <button type="button" data-filter="work"><i data-ic="work"></i><span data-i18n="filterWork">Work</span></button>
+      <button type="button" data-filter="errand"><i data-ic="errand"></i><span data-i18n="filterErrand">Errands</span></button>
+      <button type="button" data-filter="done"><i data-ic="check"></i><span data-i18n="filterDone">Done</span></button>
     </nav>
 
     <section id="overdue" class="stack"></section>
+    <div class="list-head" id="listHead" hidden><h2 id="listTitle"></h2><span class="count" id="listCount"></span></div>
     <section id="list" class="stack"></section>
 
     <footer>
       <p data-i18n="footer">No account. Tasks are stored in this browser only. Marwa Hashem — Technical Lead, Cairo.</p>
-      <p><a href="privacy.html">Privacy</a></p>
+      <p><a href="privacy.html" data-i18n="privacy">Privacy</a></p>
     </footer>
   </div>
+  <script src="icons.js"></script>
   <script src="i18n.js"></script>
   <script src="lexicon.js"></script>
   <script src="engine.js"></script>

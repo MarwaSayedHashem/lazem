@@ -5,8 +5,20 @@ const RTL = new Set(LANGUAGES.filter((l) => l.rtl).map((l) => l.code));
 const state = {
   lang: detectLang(),
   filter: "open",
+  search: "",
   tasks: loadTasks(),
   shortcuts: loadShortcuts(),
+};
+
+const FILTER_LABEL = {
+  open: "filterOpen",
+  bill: "filterBill",
+  medicine: "filterMed",
+  health: "filterHealth",
+  school: "filterSchool",
+  work: "filterWork",
+  errand: "filterErrand",
+  done: "filterDone",
 };
 
 function detectLang() {
@@ -46,6 +58,41 @@ function saveShortcuts() {
   localStorage.setItem(SHORTCUTS_STORE, JSON.stringify(state.shortcuts));
 }
 
+/* Activity log for the streak counter. */
+const ACTIVITY_STORE = "lazem.activity.v1";
+
+function loadActivity() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ACTIVITY_STORE) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function markActivity() {
+  const today = todayISO();
+  const log = loadActivity();
+  if (!log.includes(today)) {
+    log.push(today);
+    if (log.length > 400) log.splice(0, log.length - 400);
+    localStorage.setItem(ACTIVITY_STORE, JSON.stringify(log));
+  }
+}
+
+function getStreak() {
+  const log = new Set(loadActivity());
+  if (!log.size) return 0;
+  let cursor = todayISO();
+  if (!log.has(cursor)) cursor = plusDays(cursor, -1); // grace for today not started yet
+  let streak = 0;
+  while (log.has(cursor)) {
+    streak += 1;
+    cursor = plusDays(cursor, -1);
+  }
+  return streak;
+}
+
 function renderShortcuts() {
   const root = document.getElementById("shortcuts");
   if (!root) return;
@@ -53,17 +100,25 @@ function renderShortcuts() {
     .map(
       (s) =>
         `<span class="shortcut"><button type="button" data-shortcut-add="${escapeHtml(s)}">${escapeHtml(s)}</button>` +
-        `<button type="button" data-shortcut-del="${escapeHtml(s)}" aria-label="remove">✕</button></span>`
+        `<button type="button" data-shortcut-del="${escapeHtml(s)}" aria-label="remove">${icon("close")}</button></span>`
     )
     .join("");
   root.innerHTML =
     `<p class="k">${t("shortcutsTitle")}</p>${chips}` +
-    `<button type="button" class="shortcut-add" data-shortcut-new>${t("addShortcut")}</button>`;
+    `<button type="button" class="shortcut-add" data-shortcut-new>${icon("plus")}${t("addShortcut")}</button>`;
 }
 
 function t(key) {
   const pack = I18N[state.lang] || I18N.en;
   return pack[key] || I18N.en[key] || key;
+}
+
+function sub(str, params) {
+  let s = str;
+  Object.keys(params || {}).forEach((k) => {
+    s = s.split("{" + k + "}").join(String(params[k]));
+  });
+  return s;
 }
 
 function weatherLabel(code) {
@@ -99,6 +154,11 @@ function applyTheme(name) {
     const key = "theme" + theme.charAt(0).toUpperCase() + theme.slice(1);
     label.textContent = t(key);
   }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const bg = getComputedStyle(document.body).backgroundColor;
+    if (bg) meta.setAttribute("content", bg);
+  }
 }
 
 function applyLang() {
@@ -110,6 +170,8 @@ function applyLang() {
     el.textContent = t(el.dataset.i18n);
   });
   document.getElementById("note").placeholder = t("placeholder");
+  const search = document.getElementById("search");
+  if (search) search.placeholder = t("searchPlaceholder");
   applyTheme(currentTheme());
   renderShortcuts();
   renderInterview();
@@ -121,7 +183,7 @@ function todayISO() {
 }
 
 function uid() {
-  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
 }
 
 function cairoClockText() {
@@ -135,7 +197,7 @@ function cairoClockText() {
 
 function tickClock() {
   const el = document.getElementById("cairoClock");
-  if (el) el.textContent = `${t("cairoNow")} · ${cairoClockText()}`;
+  if (el) el.innerHTML = `${icon("clock")} ${t("cairoNow")} · ${cairoClockText()}`;
 }
 
 function startClock() {
@@ -145,65 +207,68 @@ function startClock() {
 }
 
 async function loadBriefing() {
-  const root = document.getElementById("brief");
+  const wTile = document.getElementById("tileWeather");
+  const fxTile = document.getElementById("tileFx");
   try {
     const data = await getBriefing();
     state.briefing = data;
     const w = data.weather || {};
     const fx = data.fx || {};
-    const wLabel = weatherLabel(w.code) || (state.lang === "ar" ? w.label_ar : w.label_en) || "";
+    const wLabel = weatherLabel(w.code) || "";
     const bits = [wLabel];
     if (w.humidity != null) bits.push(`${Math.round(w.humidity)}%`);
     const fill = w.temp_c != null ? Math.max(8, Math.min(100, (Number(w.temp_c) / 42) * 100)) : 0;
-    root.innerHTML = `
-      <article class="tile">
-        <p class="k">${t("weather")}</p>
-        <p class="v">${w.temp_c != null ? `${Math.round(w.temp_c)}°` : "—"}</p>
-        <p class="s">${bits.filter(Boolean).join(" · ")}</p>
-        <div class="meter" aria-hidden="true"><span style="--fill:${fill}%"></span></div>
-      </article>
-      <article class="tile">
-        <p class="k">${t("dollar")}</p>
-        <p class="v">${fx.usd_egp != null ? fx.usd_egp : "—"}</p>
-        <p class="s">USD → EGP</p>
-      </article>
-      <p class="clock" id="cairoClock"></p>`;
+    wTile.innerHTML = `
+      <p class="k">${icon("weather")} ${t("weather")}</p>
+      <p class="v">${w.temp_c != null ? `${Math.round(w.temp_c)}°` : "—"}</p>
+      <p class="s">${bits.filter(Boolean).join(" · ")}</p>
+      <div class="meter" aria-hidden="true"><span style="--fill:${fill}%"></span></div>`;
+    fxTile.innerHTML = `
+      <p class="k">${icon("dollar")} ${t("dollar")}</p>
+      <p class="v">${fx.usd_egp != null ? fx.usd_egp : "—"}</p>
+      <p class="s">USD → EGP</p>`;
     startClock();
   } catch {
-    root.innerHTML = `<p class="brief-loading">${t("briefLoading")}</p>`;
+    wTile.innerHTML = `<p class="brief-loading">${t("briefLoading")}</p>`;
+    fxTile.innerHTML = "";
   }
+  renderFocus();
+}
+
+function renderFocus() {
+  const tile = document.getElementById("tileFocus");
+  if (!tile) return;
+  const today = todayISO();
+  const openScope = state.tasks.filter((x) => !x.done && x.due && x.due <= today);
+  const doneToday = state.tasks.filter((x) => x.done && x.doneAt === today);
+  const total = openScope.length + doneToday.length;
+  const pct = total ? Math.round((doneToday.length / total) * 100) : 100;
+  const streak = getStreak();
+  if (!total && !streak) {
+    tile.hidden = true;
+    return;
+  }
+  const center = total ? `<b>${doneToday.length}/${total}</b>` : icon("check");
+  const line = total ? sub(t("focusDone"), { done: doneToday.length, total }) : t("focusClear");
+  const streakHtml = streak
+    ? `<span class="streak">${icon("flame")} ${sub(streak === 1 ? t("streakOne") : t("streak"), { n: streak })}</span>`
+    : "";
+  tile.hidden = false;
+  tile.innerHTML = `
+    <div class="ring" style="--p:${pct}" role="img" aria-label="${line}">${center}</div>
+    <div class="focus-body">
+      <p class="k">${icon("focus")} ${t("focusTitle")}</p>
+      <p class="v">${line}</p>
+      ${streakHtml}
+    </div>`;
 }
 
 function seedIfEmpty() {
   if (state.tasks.length) return;
   state.tasks = [
-    {
-      id: uid(),
-      title: "Electricity",
-      raw: "electricity 5 Oct 850 EGP",
-      category: "bill",
-      bill_kind: "electricity",
-      amount: 850,
-      due: "2026-10-05",
-      done: false,
-    },
-    {
-      id: uid(),
-      title: "blood pressure medicine 9pm",
-      raw: "blood pressure medicine 9pm",
-      category: "medicine",
-      time: "21:00",
-      due: todayISO(),
-      done: false,
-    },
-    {
-      id: uid(),
-      title: "buy milk and bread",
-      raw: "buy milk and bread",
-      category: "errand",
-      due: todayISO(),
-      done: false,
-    },
+    { id: uid(), title: "Electricity", raw: "electricity 5 Oct 850 EGP", category: "bill", bill_kind: "electricity", amount: 850, due: "2026-10-05", done: false },
+    { id: uid(), title: "blood pressure medicine 9pm", raw: "blood pressure medicine 9pm", category: "medicine", time: "21:00", due: todayISO(), done: false },
+    { id: uid(), title: "buy milk and bread", raw: "buy milk and bread", category: "errand", due: todayISO(), done: false },
   ];
   save();
 }
@@ -219,6 +284,12 @@ function visible(task) {
   return task.category === state.filter;
 }
 
+function matchesSearch(task) {
+  if (!state.search) return true;
+  const n = state.search.toLowerCase();
+  return (displayTitle(task) + " " + (task.raw || "") + " " + t(task.category)).toLowerCase().includes(n);
+}
+
 function displayTitle(task) {
   if (task.bill_kind) {
     const label = t("kind_" + task.bill_kind);
@@ -227,41 +298,68 @@ function displayTitle(task) {
   return task.title;
 }
 
+function emptyBox(msg) {
+  return `<div class="empty">${icon("inbox")}${escapeHtml(msg)}</div>`;
+}
+
 function render() {
   const list = document.getElementById("list");
   const overdueBox = document.getElementById("overdue");
-  const items = state.tasks.filter(visible);
+  const head = document.getElementById("listHead");
+  let items = state.tasks.filter(visible).filter(matchesSearch);
+  items = items.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
   if (!items.length) {
     overdueBox.innerHTML = "";
-    list.innerHTML = `<p class="empty">${t("empty")}</p>`;
+    head.hidden = true;
+    list.innerHTML = emptyBox(state.search ? t("noSearch") : t("empty"));
+    renderFocus();
     return;
   }
+
+  head.hidden = false;
+  document.getElementById("listTitle").textContent = t(FILTER_LABEL[state.filter] || "filterOpen");
+  document.getElementById("listCount").textContent = items.length;
+
   const overdue = items.filter(isOverdue);
   const rest = items.filter((x) => !isOverdue(x));
   overdueBox.innerHTML = overdue.map(cardHTML).join("");
   list.innerHTML = rest.map(cardHTML).join("");
+  renderFocus();
 }
 
 function cardHTML(task) {
-  const bits = [];
-  if (task.due) bits.push(`${isOverdue(task) ? t("overdue") : t("due")}: ${task.due}`);
-  if (task.time) bits.push(task.time);
-  if (task.amount) bits.push(`${t("amount")} ${task.amount} EGP`);
+  const overdue = isOverdue(task);
   const cls = ["card"];
   if (task.category) cls.push(task.category);
-  if (isOverdue(task)) cls.push("overdue");
+  if (overdue) cls.push("overdue");
   if (task.done) cls.push("done");
+  if (task.pinned) cls.push("pinned");
+  const catIcon = icon(CATEGORY_ICON[task.category] || "note");
+
+  const bits = [];
+  if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(task.due)}</span>`);
+  if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
+  if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
+  const metaInner = bits.length ? bits.join('<span class="dot">·</span>') : escapeHtml(task.raw || "");
+
   const action = task.done ? t("undo") : t("done");
-  const actionKind = task.done ? "undo" : "done";
+  const actIcon = task.done ? icon("undo") : icon("check");
+  const actKind = task.done ? "undo" : "done";
+
   return `<article class="${cls.join(" ")}" data-id="${task.id}">
-    <div>
+    <div class="badge">${catIcon}</div>
+    <div class="body">
       <h2>${escapeHtml(displayTitle(task))}</h2>
-      <p class="meta">${bits.join(" · ") || escapeHtml(task.raw || "")}</p>
+      <p class="meta${overdue ? " overdue-txt" : ""}">${metaInner}</p>
     </div>
-    <span class="chip ${task.category}">${t(task.category)}</span>
+    <div class="card-top">
+      <button type="button" class="pin-btn ${task.pinned ? "on" : ""}" data-act="pin" aria-label="${t("pin")}" title="${t("pin")}">${icon("star")}</button>
+      <span class="chip">${t(task.category)}</span>
+    </div>
     <div class="actions">
-      <button type="button" data-act="${actionKind}">${action}</button>
-      <button type="button" data-act="remove">${t("remove")}</button>
+      <button type="button" data-act="${actKind}">${actIcon}<span>${action}</span></button>
+      <button type="button" data-act="remove">${icon("trash")}<span>${t("remove")}</span></button>
     </div>
   </article>`;
 }
@@ -305,6 +403,22 @@ document.getElementById("filters").addEventListener("click", (e) => {
   render();
 });
 
+/* Search */
+const searchInput = document.getElementById("search");
+const searchbar = document.getElementById("searchbar");
+searchInput.addEventListener("input", (e) => {
+  state.search = e.target.value.trim();
+  searchbar.classList.toggle("has-text", !!e.target.value);
+  render();
+});
+document.getElementById("clearSearch").addEventListener("click", () => {
+  searchInput.value = "";
+  state.search = "";
+  searchbar.classList.remove("has-text");
+  render();
+  searchInput.focus();
+});
+
 document.body.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-act]");
   if (!btn) return;
@@ -312,9 +426,15 @@ document.body.addEventListener("click", (e) => {
   const id = card && card.dataset.id;
   const task = state.tasks.find((x) => x.id === id);
   if (!task) return;
-  if (btn.dataset.act === "done") task.done = true;
-  if (btn.dataset.act === "undo") task.done = false;
-  if (btn.dataset.act === "remove") state.tasks = state.tasks.filter((x) => x.id !== id);
+  const act = btn.dataset.act;
+  if (act === "done") {
+    task.done = true;
+    task.doneAt = todayISO();
+    markActivity();
+  }
+  if (act === "undo") task.done = false;
+  if (act === "pin") task.pinned = !task.pinned;
+  if (act === "remove") state.tasks = state.tasks.filter((x) => x.id !== id);
   save();
   render();
   refreshCoach();
@@ -351,6 +471,68 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !drawer.hidden) setMenu(false);
 });
 
+/* Backup / restore */
+function exportData() {
+  const payload = {
+    app: "lazem",
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    tasks: state.tasks,
+    shortcuts: state.shortcuts,
+    profile: state.profile,
+    activity: loadActivity(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lazem-backup-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById("exportBtn").addEventListener("click", exportData);
+document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data.tasks)) {
+        state.tasks = data.tasks;
+        save();
+      }
+      if (Array.isArray(data.shortcuts)) {
+        state.shortcuts = data.shortcuts;
+        saveShortcuts();
+      }
+      if (data.profile && typeof data.profile === "object") {
+        state.profile = data.profile;
+        saveProfile(state.profile);
+        state.qIndex = state.profile.done ? QUESTIONS.length : 0;
+      }
+      if (Array.isArray(data.activity)) {
+        localStorage.setItem(ACTIVITY_STORE, JSON.stringify(data.activity));
+      }
+      renderShortcuts();
+      renderInterview();
+      render();
+      refreshCoach();
+      setMenu(false);
+      window.alert(t("importOk"));
+    } catch {
+      window.alert(t("importErr"));
+    } finally {
+      e.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+});
+
 const PROFILE_STORE = "lazem.profile.v1";
 const QUESTIONS = [
   { id: "name", type: "text", prompt: "q_name" },
@@ -358,42 +540,21 @@ const QUESTIONS = [
     id: "household",
     type: "choice",
     prompt: "q_household",
-    options: [
-      ["self", "opt_self"],
-      ["couple", "opt_couple"],
-      ["family", "opt_family"],
-      ["manager", "opt_manager"],
-    ],
+    options: [["self", "opt_self"], ["couple", "opt_couple"], ["family", "opt_family"], ["manager", "opt_manager"]],
   },
   {
     id: "work",
     type: "choice",
     prompt: "q_work",
-    options: [
-      ["remote", "opt_remote"],
-      ["commute", "opt_commute"],
-      ["off", "opt_off"],
-    ],
+    options: [["remote", "opt_remote"], ["commute", "opt_commute"], ["off", "opt_off"]],
   },
-  {
-    id: "meds",
-    type: "bool",
-    prompt: "q_meds",
-  },
-  {
-    id: "watch_fx",
-    type: "bool",
-    prompt: "q_fx",
-  },
+  { id: "meds", type: "bool", prompt: "q_meds" },
+  { id: "watch_fx", type: "bool", prompt: "q_fx" },
   {
     id: "errand_window",
     type: "choice",
     prompt: "q_errands",
-    options: [
-      ["morning", "opt_morning"],
-      ["evening", "opt_evening"],
-      ["flex", "opt_flex"],
-    ],
+    options: [["morning", "opt_morning"], ["evening", "opt_evening"], ["flex", "opt_flex"]],
   },
 ];
 
@@ -432,7 +593,7 @@ function renderInterview() {
   }
   const q = QUESTIONS[state.qIndex];
   root.hidden = false;
-  let body = `<p class="q-progress">${state.qIndex + 1} / ${QUESTIONS.length} · ${t("q_intro")}</p>
+  let body = `<p class="q-progress">${icon("sparkles")} ${state.qIndex + 1} / ${QUESTIONS.length} · ${t("q_intro")}</p>
     <h2>${t(q.prompt)}</h2>`;
   if (q.type === "text") {
     body += `<input type="text" id="qText" maxlength="40" value="${escapeHtml(state.profile.name || "")}" />
@@ -490,17 +651,17 @@ async function refreshCoach() {
     const plan = planDay(state.profile, state.tasks, state.briefing);
     const params = { name: plan.name || state.profile.name || "there" };
     const items = (plan.items || [])
-      .map((item) => `<li>${escapeHtml(interpolate(item.code, item.params))}</li>`)
+      .map((it) => `<li>${escapeHtml(interpolate(it.code, it.params))}</li>`)
       .join("");
     const slot = plan.slot ? ` · ${t("slot_" + plan.slot)}` : "";
     let nowBtn = "";
     if (plan.next && plan.next.add) {
-      nowBtn = `<button type="button" class="now" data-add="${escapeHtml(plan.next.add)}">${t("c_do_now")}</button>`;
+      nowBtn = `<button type="button" class="now" data-add="${escapeHtml(plan.next.add)}">${icon("plus")}${t("c_do_now")}</button>`;
     } else if (plan.next && plan.next.code === "overdue_first") {
-      nowBtn = `<button type="button" class="now" data-scroll="overdue">${t("c_do_now")}</button>`;
+      nowBtn = `<button type="button" class="now" data-scroll="overdue">${icon("plus")}${t("c_do_now")}</button>`;
     }
     root.hidden = false;
-    root.innerHTML = `<p class="q-progress">${t("coach_title")}${slot}</p>
+    root.innerHTML = `<p class="q-progress">${icon("sparkles")} ${t("coach_title")}${slot}</p>
       <h2>${escapeHtml(interpolate(plan.headline, params))}</h2>
       <ol>${items}</ol>
       ${nowBtn}
@@ -527,10 +688,8 @@ async function showRelated(task) {
     root.innerHTML = `<p class="k">${t("related_title")}</p>` +
       items
         .map(
-          (item) =>
-            `<button type="button" data-add="${escapeHtml(item.add || "")}">${escapeHtml(
-              interpolate(item.code, item.params)
-            )}</button>`
+          (it) =>
+            `<button type="button" data-add="${escapeHtml(it.add || "")}">${escapeHtml(interpolate(it.code, it.params))}</button>`
         )
         .join("");
   } catch {
@@ -618,6 +777,7 @@ document.getElementById("interview").addEventListener("keydown", (e) => {
   answerQuestion(e.target.value.trim() || "there");
 });
 
+paintIcons();
 fillLangSelect();
 applyTheme(currentTheme());
 seedIfEmpty();
