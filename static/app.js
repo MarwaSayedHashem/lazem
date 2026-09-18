@@ -376,12 +376,7 @@ function daysUntil(iso) {
   const b = new Date(iso + "T00:00:00");
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
-function fillLeadSelect() {
-  const sel = document.getElementById("remindLead");
-  if (!sel) return;
-  sel.innerHTML = [0, 1, 2, 3].map((n) => `<option value="${n}">${t("lead_" + n)}</option>`).join("");
-  sel.value = String(Number(state.reminders.lead) || 0);
-}
+/* Reminders are automatic now — no lead-time picker. */
 function saveReminders() {
   localStorage.setItem(REMIND_STORE, JSON.stringify(state.reminders));
 }
@@ -455,16 +450,12 @@ function scheduleReminders() {
         showReminder(task);
       }
     });
-  // Advance reminders: notify N days before a due date (checked on open / interval).
-  const lead = Number(state.reminders.lead) || 0;
-  if (lead > 0) {
-    state.tasks
-      .filter((x) => !x.done && x.due)
-      .forEach((task) => {
-        const du = daysUntil(task.due);
-        if (du >= 1 && du <= lead) showReminder(task, du);
-      });
-  }
+  // Automatic: also remind the day before anything with a due date.
+  state.tasks
+    .filter((x) => !x.done && x.due)
+    .forEach((task) => {
+      if (daysUntil(task.due) === 1) showReminder(task, 1);
+    });
 }
 function updateReminderUI() {
   const btn = document.getElementById("remindBtn");
@@ -670,7 +661,6 @@ function applyLang() {
   applyTheme(currentTheme());
   fillSort();
   fillVoiceLangSelect();
-  fillLeadSelect();
   renderShortcuts();
   renderInterview();
   refreshCoach();
@@ -1489,12 +1479,6 @@ document.getElementById("convEgp").addEventListener("input", (e) => {
   const usd = document.getElementById("convUsd");
   if (!rate) return;
   usd.value = e.target.value ? (Number(e.target.value) / rate).toFixed(2) : "";
-});
-
-document.getElementById("remindLead").addEventListener("change", (e) => {
-  state.reminders.lead = Number(e.target.value) || 0;
-  saveReminders();
-  scheduleReminders();
 });
 
 document.getElementById("shareBtn").addEventListener("click", () => {
