@@ -334,6 +334,23 @@ document.querySelector(".themes").addEventListener("click", (e) => {
   applyTheme(btn.dataset.set);
 });
 
+/* Slide-out settings menu */
+const drawer = document.getElementById("drawer");
+const menuBtn = document.getElementById("menuBtn");
+function setMenu(open) {
+  drawer.hidden = !open;
+  document.body.classList.toggle("menu-open", open);
+  menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+menuBtn.addEventListener("click", () => setMenu(drawer.hidden));
+document.getElementById("drawerClose").addEventListener("click", () => setMenu(false));
+drawer.addEventListener("click", (e) => {
+  if (e.target === drawer) setMenu(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !drawer.hidden) setMenu(false);
+});
+
 const PROFILE_STORE = "lazem.profile.v1";
 const QUESTIONS = [
   { id: "name", type: "text", prompt: "q_name" },

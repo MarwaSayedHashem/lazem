@@ -443,3 +443,106 @@ html[dir="ltr"] .composer input { font-family: var(--font); }
   }
   .card:hover, .tile:hover, .themes button:hover { transform: none; }
 }
+
+/* ============================================================
+   v2 design pass — menu drawer, category icons, richer surfaces
+   ============================================================ */
+
+.top { align-items: flex-start; }
+.brand { min-width: 0; }
+
+.menu-btn {
+  flex: none;
+  width: 46px; height: 46px;
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 4px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+.menu-btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+.menu-btn span { display: block; width: 20px; height: 2px; margin: 0 auto; background: var(--ink); border-radius: 2px; }
+[data-theme="girly"] .menu-btn { border-radius: 14px; }
+[data-theme="simple"] .menu-btn:hover { transform: none; }
+
+.drawer {
+  position: fixed; inset: 0; z-index: 60;
+  background: color-mix(in srgb, #000 42%, transparent);
+  display: flex; justify-content: flex-end;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+[dir="rtl"] .drawer { justify-content: flex-start; }
+.drawer[hidden] { display: none; }
+body.menu-open { overflow: hidden; }
+.drawer-panel {
+  position: relative;
+  width: min(90%, 340px); height: 100%;
+  background: var(--paper);
+  border-inline-start: 1px solid var(--line);
+  padding: 1.5rem 1.3rem 2rem;
+  overflow-y: auto;
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.5);
+  animation: drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes drawer-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+[dir="rtl"] .drawer-panel { animation-name: drawer-in-rtl; }
+@keyframes drawer-in-rtl { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+.drawer-close {
+  position: absolute; top: 0.85rem; inset-inline-end: 1rem;
+  border: 0; background: none; color: var(--muted);
+  font-size: 1.1rem; cursor: pointer; padding: 0.3rem; line-height: 1;
+}
+.drawer-title { margin: 0 0 0.4rem; font-family: var(--display); font-size: 1.55rem; font-weight: 600; }
+.drawer-h { margin: 1.3rem 0 0.55rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.drawer-panel .themes { gap: 0.5rem; }
+.drawer-panel .themes button { width: 1.85rem; height: 1.85rem; }
+.drawer-panel .lang { max-width: 100%; width: 100%; }
+.drawer-foot { margin-top: 1.7rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 0.75rem; color: var(--muted); line-height: 1.6; }
+
+/* Category icons on chips */
+.chip::before { margin-inline-end: 0.3rem; }
+.chip.bill::before { content: "🧾"; }
+.chip.medicine::before { content: "💊"; }
+.chip.health::before { content: "🩺"; }
+.chip.school::before { content: "🎒"; }
+.chip.work::before { content: "💼"; }
+.chip.errand::before { content: "🛒"; }
+.chip.note::before { content: "📝"; }
+
+/* Richer filter pills with icons */
+.filters button {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-weight: 600; border-radius: 999px; padding: 0.44rem 0.95rem;
+}
+[data-theme="simple"] .filters button { border-radius: 0; }
+.filters button.on { background: var(--accent); color: var(--btn-fg); border-color: var(--accent); }
+.filters [data-filter="open"]::before { content: "📥"; }
+.filters [data-filter="bill"]::before { content: "🧾"; }
+.filters [data-filter="medicine"]::before { content: "💊"; }
+.filters [data-filter="health"]::before { content: "🩺"; }
+.filters [data-filter="school"]::before { content: "🎒"; }
+.filters [data-filter="work"]::before { content: "💼"; }
+.filters [data-filter="errand"]::before { content: "🛒"; }
+.filters [data-filter="done"]::before { content: "✓"; }
+
+/* Richer task cards — subtle category tint + thicker accent */
+.card::before { width: 5px; }
+.card.bill { background: color-mix(in srgb, var(--accent-2) 4%, var(--card)); }
+.card.medicine { background: color-mix(in srgb, var(--danger) 4%, var(--card)); }
+.card.health { background: color-mix(in srgb, #2f9e44 5%, var(--card)); }
+.card.school { background: color-mix(in srgb, #1971c2 5%, var(--card)); }
+.card.work { background: color-mix(in srgb, #7048e8 5%, var(--card)); }
+.card h2 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; }
+
+/* Elevated briefing tiles */
+.tile { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, var(--card)), var(--card)); }
+[data-theme="simple"] .tile { background: var(--card); }
+
+/* Give the coach + interview a designed accent edge */
+.coach, .interview { border-inline-start: 3px solid var(--accent); }
+
+@media (max-width: 520px) {
+  .top { flex-direction: row; align-items: flex-start; }
+}
