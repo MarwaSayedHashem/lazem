@@ -58,6 +58,8 @@
         <p class="drawer-h"><i data-ic="bell"></i><span data-i18n="menuReminders">Reminders</span></p>
         <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Enable reminders</span></button>
         <p class="remind-note" id="remindNote" data-i18n="remindNote">Get a notification when a dose or bill is due. Works while Lazem is open in the background.</p>
+        <label class="sr" for="remindLead">When to remind</label>
+        <select id="remindLead" class="lang" aria-label="When to remind"></select>
 
         <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuConverter">Currency</span></p>
         <div class="converter">
@@ -136,6 +138,7 @@
       <span class="lh-right">
         <select id="sortSel" class="sort-sel" aria-label="Sort"></select>
         <span class="count" id="listCount"></span>
+        <button type="button" class="chipbtn" id="shareBtn"><i data-ic="share"></i><span data-i18n="share">Share</span></button>
         <button type="button" class="chipbtn clear-done" id="clearDoneBtn" hidden><i data-ic="trash"></i><span data-i18n="clearCompleted">Clear completed</span></button>
       </span>
     </div>
@@ -150,6 +153,7 @@
     <span id="toastMsg"></span>
     <button type="button" id="toastUndo" data-i18n="undo">Undo</button>
   </div>
+  <div class="sheet" id="sheet" hidden><div class="sheet-card" id="sheetCard"></div></div>
   <input type="file" id="cardPhotoInput" accept="image/*" capture="environment" hidden />
   <div class="lightbox" id="lightbox" hidden>
     <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close"><i data-ic="close"></i></button>

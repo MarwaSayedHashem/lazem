@@ -877,6 +877,46 @@ footer a { color: var(--accent); }
 .toast #toastUndo:hover { background: color-mix(in srgb, var(--paper) 28%, transparent); }
 [data-theme="simple"] .toast #toastUndo { border-radius: var(--radius-xs); }
 
+/* ---------- Anomaly flag + cash-flow ---------- */
+.anomaly-flag { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--danger); font-weight: 700; }
+.anomaly-flag .ic { width: 0.9rem; height: 0.9rem; }
+.cashflow { display: flex; gap: 1.2rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.cf-item { display: flex; flex-direction: column; gap: 0.1rem; }
+.cf-item .cf-k { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.03em; text-transform: uppercase; font-weight: 600; }
+.cf-item .cf-v { font-family: var(--display); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- Modal sheet (share / import) ---------- */
+.sheet {
+  position: fixed; inset: 0; z-index: 88; display: grid; place-items: center; padding: 1.2rem;
+  background: color-mix(in srgb, #000 55%, transparent);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  animation: fade 200ms ease;
+}
+.sheet[hidden] { display: none; }
+.sheet-card {
+  position: relative; width: min(100%, 27rem); background: var(--paper);
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  padding: 1.5rem 1.4rem 1.4rem; animation: rise 0.3s both;
+}
+.sheet-close { position: absolute; top: 0.9rem; inset-inline-end: 1rem; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 9px; cursor: pointer; }
+.sheet-close .ic { width: 1.1rem; height: 1.1rem; }
+.sheet-card h3 { margin: 0 0 0.2rem; font-family: var(--display); font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.sheet-card h3 .ic { color: var(--accent); width: 1.4rem; height: 1.4rem; }
+.sheet-sub { margin: 0 0 1rem; color: var(--muted); font-size: 0.9rem; }
+.sheet-link { display: flex; gap: 0.5rem; margin-bottom: 0.9rem; }
+.sheet-link input { flex: 1; min-width: 0; font: inherit; font-size: 0.85rem; padding: 0.6rem 0.7rem; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: var(--radius-sm); }
+.sheet-qr { display: grid; place-items: center; margin: 0.2rem 0 1rem; }
+.sheet-qr canvas, .sheet-qr img { width: 190px; height: 190px; image-rendering: pixelated; border-radius: var(--radius-sm); border: 8px solid #fff; background: #fff; }
+.sheet-qr-hint { margin: 0.4rem 0 0; font-size: 0.76rem; color: var(--muted); text-align: center; }
+.sheet-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.sheet-btn {
+  flex: 1; min-width: 8rem; font: inherit; font-weight: 700; cursor: pointer;
+  border: 0; background: var(--accent); color: var(--btn-fg); padding: 0.7rem 1rem; border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+}
+.sheet-btn.ghost { background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); }
+.sheet-btn .ic { width: 1.05rem; height: 1.05rem; }
+
 /* ---------- Celebration ---------- */
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden; }
 .confetti span { position: absolute; top: -14px; width: 8px; height: 13px; border-radius: 2px; opacity: 0.95; animation: fall 1.5s cubic-bezier(0.25, 0.7, 0.4, 1) forwards; }

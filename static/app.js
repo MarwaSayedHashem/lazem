@@ -326,12 +326,24 @@ function renderBudget() {
       `<span class="bud-amt">${fmtNum(amt)}</span></div>`
     )
     .join("");
+  const today2 = todayISO();
+  const in7 = plusDays(today2, 7);
+  const in30 = plusDays(today2, 30);
+  const openAmt = state.tasks.filter((x) => !x.done && Number(x.amount) > 0 && x.due && x.due >= today2);
+  const next7 = openAmt.filter((x) => x.due <= in7).reduce((s, x) => s + Number(x.amount), 0);
+  const next30 = openAmt.filter((x) => x.due <= in30).reduce((s, x) => s + Number(x.amount), 0);
+  const cash = next30 > 0
+    ? `<div class="cashflow"><div class="cf-item"><span class="cf-k">${t("cashNext7")}</span><span class="cf-v">${fmtNum(next7)} EGP</span></div>` +
+      `<div class="cf-item"><span class="cf-k">${t("cashNext30")}</span><span class="cf-v">${fmtNum(next30)} EGP</span></div></div>`
+    : "";
+
   tile.hidden = false;
   tile.innerHTML =
     `<p class="k">${icon("coins")} ${t("budgetTitle")} · ${monthLabel()}</p>` +
     `<p class="v">${fmtNum(total)} <span class="bud-egp">EGP</span></p>` +
     `<p class="s">${sub(t("budgetPaid"), { paid: fmtNum(paid), total: fmtNum(total) })}</p>` +
-    `<div class="bud-rows">${rows}</div>`;
+    `<div class="bud-rows">${rows}</div>` +
+    cash;
 }
 
 /* ---------- Reminders (local notifications) ---------- */
@@ -341,10 +353,22 @@ const NOTIFIED_STORE = "lazem.notified.v1";
 function loadReminders() {
   try {
     const r = JSON.parse(localStorage.getItem(REMIND_STORE) || "{}");
-    return { enabled: !!r.enabled };
+    return { enabled: !!r.enabled, lead: Number(r.lead) || 0 };
   } catch {
-    return { enabled: false };
+    return { enabled: false, lead: 0 };
   }
+}
+function daysUntil(iso) {
+  if (!iso) return Infinity;
+  const a = new Date(todayISO() + "T00:00:00");
+  const b = new Date(iso + "T00:00:00");
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+function fillLeadSelect() {
+  const sel = document.getElementById("remindLead");
+  if (!sel) return;
+  sel.innerHTML = [0, 1, 2, 3].map((n) => `<option value="${n}">${t("lead_" + n)}</option>`).join("");
+  sel.value = String(Number(state.reminders.lead) || 0);
 }
 function saveReminders() {
   localStorage.setItem(REMIND_STORE, JSON.stringify(state.reminders));
@@ -373,11 +397,17 @@ function markNotified(key) {
 function wasNotified(key) {
   return loadNotified().includes(key);
 }
-function showReminder(task) {
-  const key = `${task.id}:${todayISO()}:${task.time || "due"}`;
+function showReminder(task, du) {
+  const advance = du && du > 0;
+  const key = `${task.id}:${todayISO()}:${advance ? "adv" : task.time || "due"}`;
   if (wasNotified(key)) return;
   markNotified(key);
-  const body = [task.time || "", task.amount ? `${task.amount} EGP` : "", t(task.category)].filter(Boolean).join(" · ");
+  const parts = [];
+  if (advance) parts.push(sub(t("dueInDays"), { n: du }));
+  if (task.time) parts.push(task.time);
+  if (task.amount) parts.push(`${task.amount} EGP`);
+  parts.push(t(task.category));
+  const body = parts.filter(Boolean).join(" · ");
   const opts = { body, tag: key, icon: "icons/icon-192.png", badge: "icons/icon-192.png", lang: state.lang };
   const title = displayTitle(task);
   try {
@@ -413,6 +443,16 @@ function scheduleReminders() {
         showReminder(task);
       }
     });
+  // Advance reminders: notify N days before a due date (checked on open / interval).
+  const lead = Number(state.reminders.lead) || 0;
+  if (lead > 0) {
+    state.tasks
+      .filter((x) => !x.done && x.due)
+      .forEach((task) => {
+        const du = daysUntil(task.due);
+        if (du >= 1 && du <= lead) showReminder(task, du);
+      });
+  }
 }
 function updateReminderUI() {
   const btn = document.getElementById("remindBtn");
@@ -618,6 +658,7 @@ function applyLang() {
   applyTheme(currentTheme());
   fillSort();
   fillVoiceLangSelect();
+  fillLeadSelect();
   renderShortcuts();
   renderInterview();
   refreshCoach();
@@ -864,6 +905,8 @@ let undoSnapshot = null;
 function showToast(msg, snapshot) {
   undoSnapshot = snapshot || null;
   document.getElementById("toastMsg").textContent = msg;
+  const undoBtn = document.getElementById("toastUndo");
+  if (undoBtn) undoBtn.style.display = snapshot ? "" : "none";
   const toast = document.getElementById("toast");
   toast.hidden = false;
   requestAnimationFrame(() => toast.classList.add("show"));
@@ -876,6 +919,105 @@ function hideToast() {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, 250);
   undoSnapshot = null;
+}
+
+/* ---------- Bill anomaly detection ---------- */
+function billAverage(kind, excludeId) {
+  const amts = state.tasks
+    .filter((x) => x.bill_kind === kind && Number(x.amount) > 0 && x.id !== excludeId)
+    .map((x) => Number(x.amount));
+  if (amts.length < 2) return null;
+  return amts.reduce((s, n) => s + n, 0) / amts.length;
+}
+function anomalyPct(task) {
+  if (task.category !== "bill" || !task.bill_kind || !(Number(task.amount) > 0)) return 0;
+  const avg = billAverage(task.bill_kind, task.id);
+  if (!avg) return 0;
+  const pct = Math.round((Number(task.amount) / avg - 1) * 100);
+  return pct >= 20 ? pct : 0;
+}
+
+/* ---------- Share list via link (serverless) ---------- */
+function b64EncodeUtf8(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUtf8(b) {
+  return decodeURIComponent(escape(atob(b)));
+}
+function shareableTasks() {
+  return state.tasks
+    .filter((x) => !x.done)
+    .filter(visible)
+    .filter(matchesSearch)
+    .map((tk) => {
+      const o = { t: tk.title, r: tk.raw, c: tk.category, d: tk.due || null, tm: tk.time || null, a: tk.amount || null, rp: tk.repeat || null, bk: tk.bill_kind || null };
+      if (Array.isArray(tk.subtasks) && tk.subtasks.length) o.st = tk.subtasks.map((s) => ({ x: s.text, d: !!s.done }));
+      return o;
+    });
+}
+function buildShareUrl(tasks) {
+  const enc = b64EncodeUtf8(JSON.stringify({ v: 1, t: tasks }));
+  return location.origin + location.pathname + "#s=" + enc;
+}
+function openSheet(html) {
+  document.getElementById("sheetCard").innerHTML = html;
+  document.getElementById("sheet").hidden = false;
+}
+function closeSheet() {
+  document.getElementById("sheet").hidden = true;
+  document.getElementById("sheetCard").innerHTML = "";
+}
+function openShareSheet(url, count) {
+  state._shareUrl = url;
+  const nativeBtn = navigator.share ? `<button class="sheet-btn" data-sheet="native">${icon("share")} ${t("shareNative")}</button>` : "";
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("share")} ${t("shareTitle")}</h3>` +
+    `<p class="sheet-sub">${sub(t("shareTasks"), { n: count })}</p>` +
+    `<div class="sheet-link"><input id="shareUrl" readonly value="${escapeHtml(url)}" /></div>` +
+    `<div class="sheet-actions">${nativeBtn}<button class="sheet-btn ghost" data-sheet="copy">${icon("copy")} ${t("copy")}</button></div>`
+  );
+}
+function openImportSheet(n) {
+  openSheet(
+    `<button class="sheet-close" data-sheet="cancel" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("download")} ${t("importTitle")}</h3>` +
+    `<p class="sheet-sub">${sub(t("importBody"), { n })}</p>` +
+    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="import">${icon("check")} ${t("importAdd")}</button><button class="sheet-btn ghost" data-sheet="cancel">${t("importCancel")}</button></div>`
+  );
+}
+function clearShareHash() {
+  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+}
+function checkSharedLink() {
+  const m = (location.hash || "").match(/[#&]s=([^&]+)/);
+  if (!m) return;
+  let payload;
+  try { payload = JSON.parse(b64DecodeUtf8(decodeURIComponent(m[1]))); } catch { clearShareHash(); return; }
+  if (!payload || !Array.isArray(payload.t) || !payload.t.length) { clearShareHash(); return; }
+  state._importTasks = payload.t;
+  openImportSheet(payload.t.length);
+}
+function doImport() {
+  const arr = state._importTasks || [];
+  arr.forEach((tk) => {
+    const task = {
+      id: uid(), done: false,
+      title: tk.t || tk.r || "Task", raw: tk.r || tk.t || "",
+      category: tk.c || "note", due: tk.d || null, time: tk.tm || null,
+      amount: tk.a || null, repeat: tk.rp || null, bill_kind: tk.bk || null,
+    };
+    if (Array.isArray(tk.st)) task.subtasks = tk.st.map((s) => ({ id: uid(), text: String(s.x || "").slice(0, 80), done: !!s.d }));
+    state.tasks.unshift(task);
+  });
+  save();
+  state._importTasks = null;
+  clearShareHash();
+  closeSheet();
+  render();
+  refreshCoach();
+  scheduleReminders();
+  showToast(t("importDone"));
 }
 
 function seedIfEmpty() {
@@ -981,6 +1123,8 @@ function cardHTML(task) {
   if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(task.due)}</span>`);
   if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
   if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
+  const anom = anomalyPct(task);
+  if (anom) bits.push(`<span class="anomaly-flag">${icon("alert")} ${sub(t("anomaly"), { pct: anom })}</span>`);
   if (task.repeat) bits.push(`<span class="repeat-flag">${icon("repeat")} ${t("repeat_" + task.repeat)}</span>`);
   if (subs.length) {
     const pct = Math.round((subDone / subs.length) * 100);
@@ -1076,6 +1220,8 @@ async function addTask(text) {
   refreshCoach();
   scheduleReminders();
   showRelated(task);
+  const anom = anomalyPct(task);
+  if (anom) showToast(sub(t("anomalyToast"), { title: displayTitle(task), pct: anom }));
 }
 
 document.getElementById("composer").addEventListener("submit", async (e) => {
@@ -1187,6 +1333,47 @@ document.getElementById("convEgp").addEventListener("input", (e) => {
   if (!rate) return;
   usd.value = e.target.value ? (Number(e.target.value) / rate).toFixed(2) : "";
 });
+
+document.getElementById("remindLead").addEventListener("change", (e) => {
+  state.reminders.lead = Number(e.target.value) || 0;
+  saveReminders();
+  scheduleReminders();
+});
+
+document.getElementById("shareBtn").addEventListener("click", () => {
+  const tasks = shareableTasks();
+  if (!tasks.length) { showToast(t("shareEmpty")); return; }
+  openShareSheet(buildShareUrl(tasks), tasks.length);
+});
+
+document.getElementById("sheetCard").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-sheet]");
+  if (!btn) return;
+  const act = btn.dataset.sheet;
+  if (act === "close") { closeSheet(); return; }
+  if (act === "cancel") { clearShareHash(); closeSheet(); return; }
+  if (act === "copy") {
+    const input = document.getElementById("shareUrl");
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(state._shareUrl);
+      else if (input) { input.select(); document.execCommand("copy"); }
+      closeSheet();
+      showToast(t("copied"));
+    } catch {
+      if (input) input.select();
+    }
+    return;
+  }
+  if (act === "native") {
+    try { await navigator.share({ title: t("shareTitle"), url: state._shareUrl }); closeSheet(); } catch {}
+    return;
+  }
+  if (act === "import") { doImport(); return; }
+});
+document.getElementById("sheet").addEventListener("click", (e) => {
+  if (e.target.id === "sheet") closeSheet();
+});
+window.addEventListener("hashchange", checkSharedLink);
 
 /* Search */
 const searchInput = document.getElementById("search");
@@ -1339,6 +1526,8 @@ drawer.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  const sh = document.getElementById("sheet");
+  if (sh && !sh.hidden) { closeSheet(); return; }
   const lb = document.getElementById("lightbox");
   if (lb && !lb.hidden) { closeLightbox(); return; }
   if (!drawer.hidden) setMenu(false);
@@ -1682,6 +1871,7 @@ render();
 refreshCoach();
 updateReminderUI();
 scheduleReminders();
+checkSharedLink();
 
 /* Re-check reminder timers on focus and around the day boundary. */
 document.addEventListener("visibilitychange", () => {
