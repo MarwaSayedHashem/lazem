@@ -469,15 +469,36 @@ function voiceLang(l) {
   };
   return map[l] || "en-US";
 }
+const VOICE_STORE = "lazem.voicelang.v1";
+function currentVoiceLang() {
+  const v = localStorage.getItem(VOICE_STORE);
+  return v && I18N[v] ? v : state.lang;
+}
+function fillVoiceLangSelect() {
+  const sel = document.getElementById("voiceLangSel");
+  if (!sel) return;
+  sel.innerHTML = LANGUAGES.map((l) => `<option value="${l.code}">${l.name}</option>`).join("");
+  sel.value = currentVoiceLang();
+}
 function setupVoice() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micBtn = document.getElementById("micBtn");
+  const section = document.getElementById("voiceSection");
   if (!micBtn) return;
   if (!SR) {
     micBtn.hidden = true;
+    if (section) section.hidden = true;
     return;
   }
   micBtn.hidden = false;
+  if (section) section.hidden = false;
+  fillVoiceLangSelect();
+  const sel = document.getElementById("voiceLangSel");
+  if (sel) {
+    sel.addEventListener("change", (e) => {
+      localStorage.setItem(VOICE_STORE, e.target.value);
+    });
+  }
   let rec = null;
   let listening = false;
   micBtn.addEventListener("click", () => {
@@ -486,19 +507,30 @@ function setupVoice() {
       return;
     }
     rec = new SR();
-    rec.lang = voiceLang(state.lang);
-    rec.interimResults = false;
+    rec.lang = voiceLang(currentVoiceLang());
+    rec.interimResults = true;
+    rec.continuous = false;
     rec.maxAlternatives = 1;
-    rec.onstart = () => { listening = true; micBtn.classList.add("on"); };
-    rec.onend = () => { listening = false; micBtn.classList.remove("on"); };
-    rec.onerror = () => { listening = false; micBtn.classList.remove("on"); };
+    const input = document.getElementById("note");
+    rec.onstart = () => { listening = true; micBtn.classList.add("on"); micBtn.setAttribute("aria-label", t("voiceListening")); };
+    rec.onend = () => { listening = false; micBtn.classList.remove("on"); micBtn.setAttribute("aria-label", "Voice input"); };
+    rec.onerror = (ev) => {
+      listening = false;
+      micBtn.classList.remove("on");
+      if (ev && ev.error === "not-allowed") showToast(t("voiceDenied"));
+      else if (ev && ev.error === "no-speech") showToast(t("voiceNoSpeech"));
+    };
     rec.onresult = (e) => {
-      const txt = ((e.results[0] && e.results[0][0] && e.results[0][0].transcript) || "").trim();
-      if (txt) {
-        const input = document.getElementById("note");
-        input.value = txt;
-        input.focus();
+      let finalTxt = "";
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) finalTxt += r[0].transcript;
+        else interim += r[0].transcript;
       }
+      if (finalTxt) input.value = finalTxt.trim();
+      else if (interim) input.value = interim;
+      input.focus();
     };
     try { rec.start(); } catch {}
   });
@@ -585,6 +617,7 @@ function applyLang() {
   if (search) search.placeholder = t("searchPlaceholder");
   applyTheme(currentTheme());
   fillSort();
+  fillVoiceLangSelect();
   renderShortcuts();
   renderInterview();
   refreshCoach();

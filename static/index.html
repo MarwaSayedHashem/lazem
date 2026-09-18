@@ -48,6 +48,13 @@
         <label class="sr" for="lang">Language</label>
         <select id="lang" class="lang" aria-label="Language"></select>
 
+        <div id="voiceSection" hidden>
+          <p class="drawer-h"><i data-ic="mic"></i><span data-i18n="menuVoice">Voice input</span></p>
+          <label class="sr" for="voiceLangSel">Recognition language</label>
+          <select id="voiceLangSel" class="lang" aria-label="Recognition language"></select>
+          <p class="remind-note" data-i18n="voiceHint">Pick the language you'll speak — the mic recognizes all 20.</p>
+        </div>
+
         <p class="drawer-h"><i data-ic="bell"></i><span data-i18n="menuReminders">Reminders</span></p>
         <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Enable reminders</span></button>
         <p class="remind-note" id="remindNote" data-i18n="remindNote">Get a notification when a dose or bill is due. Works while Lazem is open in the background.</p>
