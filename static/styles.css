@@ -139,7 +139,7 @@
 
 * { box-sizing: border-box; }
 html { transition: background-color 300ms ease, color 300ms ease; }
-html, body { margin: 0; background: var(--paper); color: var(--ink); }
+html, body { margin: 0; background: var(--paper); color: var(--ink); overflow-x: hidden; }
 body {
   min-height: 100vh;
   font-family: var(--font);
@@ -503,12 +503,15 @@ body.menu-open { overflow: hidden; }
 
 /* ---------- List ---------- */
 .list-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem;
-  margin: 0 0.15rem 0.7rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem 0.7rem;
+  margin: 0 0.15rem 0.8rem; flex-wrap: wrap;
 }
 .list-head h2 { margin: 0; font-family: var(--display); font-size: 1.05rem; font-weight: 600; }
-.list-head .lh-right { display: inline-flex; align-items: center; gap: 0.6rem; }
-.list-head .count { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list-head .lh-right { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+.list-head .count {
+  font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 700;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 0.12rem 0.5rem; border-radius: 999px;
+}
 .sort-sel {
   font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted);
   border: 1px solid var(--line-strong); background: var(--card);
@@ -933,6 +936,14 @@ footer a { color: var(--accent); }
 @keyframes fall { to { transform: translateY(108vh) translateX(calc(var(--x, 0) * 130px)) rotate(600deg); opacity: 0.15; } }
 .focus.cleared .ring { animation: pop 0.5s ease; }
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* Tactile press feedback across interactive controls */
+.composer button:active, .mic-btn:active, .filters button:active, .chipbtn:active,
+.data-btn:active, .sheet-btn:active, .coach .now:active, .related button:active,
+.shortcut-add:active, .agenda .day:active, .menu-btn:active, .pin-btn:active,
+.actions button:active, .insights-toggle:active {
+  transform: scale(0.96);
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
