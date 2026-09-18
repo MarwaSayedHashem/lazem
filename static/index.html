@@ -90,22 +90,17 @@
       </aside>
     </div>
 
-    <section class="hero" id="hero" hidden></section>
-
-    <section class="dash" id="brief">
-      <article class="tile" id="tileWeather"><p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p></article>
-      <article class="tile" id="tileFx"></article>
-      <article class="tile focus" id="tileFocus" hidden></article>
-      <article class="tile budget" id="tileBudget" hidden></article>
-      <p class="clock" id="cairoClock"></p>
-    </section>
-
-    <section class="insights-wrap">
-      <button type="button" class="insights-toggle" id="insightsToggle" aria-expanded="false" aria-controls="insights">
-        <span class="it-label"><i data-ic="chart"></i><span data-i18n="insightsTitle">Insights</span></span>
-        <i data-ic="chevron" class="it-chev"></i>
-      </button>
-      <div class="insights" id="insights" hidden></div>
+    <section class="today" id="today">
+      <div class="today-head">
+        <div class="today-icon" id="todayIcon"></div>
+        <div class="today-greet-wrap">
+          <p class="today-greet" id="todayGreet">Lazem</p>
+          <p class="today-date" id="todayDate"></p>
+        </div>
+      </div>
+      <div class="today-stats" id="todayStats">
+        <p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p>
+      </div>
     </section>
 
     <section class="interview" id="interview" hidden></section>
@@ -152,6 +147,16 @@
       </span>
     </div>
     <section id="list" class="stack"></section>
+
+    <article class="budget-card" id="tileBudget" hidden></article>
+
+    <section class="insights-wrap">
+      <button type="button" class="insights-toggle" id="insightsToggle" aria-expanded="false" aria-controls="insights">
+        <span class="it-label"><i data-ic="chart"></i><span data-i18n="insightsTitle">Insights</span></span>
+        <i data-ic="chevron" class="it-chev"></i>
+      </button>
+      <div class="insights" id="insights" hidden></div>
+    </section>
 
     <footer>
       <p data-i18n="footer">No account. Tasks are stored in this browser only. Marwa Hashem — Technical Lead, Cairo.</p>

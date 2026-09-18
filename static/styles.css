@@ -138,6 +138,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { transition: background-color 300ms ease, color 300ms ease; }
 html, body { margin: 0; background: var(--paper); color: var(--ink); overflow-x: hidden; }
 body {
@@ -299,7 +300,60 @@ body.menu-open { overflow: hidden; }
   padding: 0.55rem 0.7rem; font: inherit; cursor: pointer; border-radius: var(--radius-sm);
 }
 
-/* ---------- Hero greeting ---------- */
+/* ---------- Today card (consolidated greeting + weather + USD + focus) ---------- */
+.today {
+  margin: 1.4rem 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 130% at 100% -20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--card)), var(--card));
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: rise 0.5s both;
+}
+[data-theme="simple"] .today { background: var(--card); }
+.today-head { display: flex; align-items: center; gap: 0.9rem; padding: 1.1rem 1.2rem; }
+.today-icon {
+  flex: none; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+}
+.today-icon .ic { width: 1.55rem; height: 1.55rem; }
+.today-greet-wrap { min-width: 0; }
+.today-greet { margin: 0; font-family: var(--display); font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.12; }
+.today-date { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.84rem; }
+.today-stats { display: flex; border-top: 1px solid var(--line); }
+.today-stats .brief-loading { padding: 0.9rem 1.2rem; margin: 0; }
+.today-stats .stat {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.28rem;
+  padding: 0.85rem 0.4rem 0.9rem; text-align: center;
+}
+.today-stats .stat + .stat { border-inline-start: 1px solid var(--line); }
+.stat .stat-ic { display: inline-grid; place-items: center; }
+.stat .stat-ic .ic { width: 1.2rem; height: 1.2rem; color: var(--accent); }
+.stat .streak-ic .ic { color: var(--accent-2); }
+.stat b { font-family: var(--display); font-size: 1.2rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .stat-s { font-size: 0.64rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ring-mini {
+  width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; position: relative;
+  background: conic-gradient(var(--accent) calc(var(--p, 0) * 1%), color-mix(in srgb, var(--line) 55%, var(--ink) 8%) 0);
+  transition: background 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ring-mini::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--card); }
+.ring-mini b { position: relative; font-size: 0.66rem; font-weight: 700; }
+.today.cleared .ring-mini { animation: pop 0.5s ease; }
+
+/* ---------- Budget card (slim, below the list) ---------- */
+.budget-card {
+  margin: 1.2rem 0 0.4rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); box-shadow: var(--shadow-sm); padding: 1rem 1.1rem;
+}
+.budget-card .k { margin: 0; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; }
+.budget-card .k .ic { width: 1rem; height: 1rem; color: var(--accent); }
+.budget-card .v { margin: 0.4rem 0 0; font-family: var(--display); font-size: 1.7rem; font-weight: 600; line-height: 1; }
+.budget-card .s { margin: 0.3rem 0 0; font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- Hero greeting (legacy, unused) ---------- */
 .hero {
   margin: 1.4rem 0 0;
   display: flex; align-items: center; gap: 0.85rem;

@@ -664,6 +664,7 @@ function applyLang() {
   renderShortcuts();
   renderInterview();
   refreshCoach();
+  renderTodayStats();
   updateReminderUI();
   updateConverter();
 }
@@ -697,73 +698,56 @@ function startClock() {
 }
 
 async function loadBriefing() {
-  const wTile = document.getElementById("tileWeather");
-  const fxTile = document.getElementById("tileFx");
-  const sk = `<p class="sk-k skeleton"></p><p class="sk-v skeleton"></p><p class="sk-s skeleton"></p>`;
-  wTile.innerHTML = sk;
-  fxTile.innerHTML = sk;
+  const el = document.getElementById("todayStats");
+  if (el && !state.briefing) el.innerHTML = `<p class="brief-loading">${t("briefLoading")}</p>`;
   try {
-    const data = await getBriefing();
-    state.briefing = data;
-    const w = data.weather || {};
-    const fx = data.fx || {};
-    const wLabel = weatherLabel(w.code) || "";
-    const bits = [wLabel];
-    if (w.humidity != null) bits.push(`${Math.round(w.humidity)}%`);
-    const fill = w.temp_c != null ? Math.max(8, Math.min(100, (Number(w.temp_c) / 42) * 100)) : 0;
-    wTile.innerHTML = `
-      <p class="k">${icon("weather")} ${t("weather")}</p>
-      <p class="v">${w.temp_c != null ? `${Math.round(w.temp_c)}°` : "—"}</p>
-      <p class="s">${bits.filter(Boolean).join(" · ")}</p>
-      <div class="meter" aria-hidden="true"><span style="--fill:${fill}%"></span></div>`;
-    fxTile.innerHTML = `
-      <p class="k">${icon("dollar")} ${t("dollar")}</p>
-      <p class="v">${fx.usd_egp != null ? fx.usd_egp : "—"}</p>
-      <p class="s">USD → EGP</p>`;
-    startClock();
-  } catch {
-    wTile.innerHTML = `<p class="brief-loading">${t("briefLoading")}</p>`;
-    fxTile.innerHTML = "";
-  }
-  renderFocus();
+    state.briefing = await getBriefing();
+  } catch {}
+  renderTodayStats();
   renderBudget();
   updateConverter();
 }
 
-function renderFocus() {
-  const tile = document.getElementById("tileFocus");
-  if (!tile) return;
+function renderTodayStats() {
+  const el = document.getElementById("todayStats");
+  if (!el) return;
+  const w = (state.briefing && state.briefing.weather) || {};
+  const fx = (state.briefing && state.briefing.fx) || {};
   const today = todayISO();
   const openScope = state.tasks.filter((x) => !x.done && x.due && x.due <= today);
   const doneToday = state.tasks.filter((x) => x.done && x.doneAt === today);
   const total = openScope.length + doneToday.length;
   const pct = total ? Math.round((doneToday.length / total) * 100) : 100;
-  const streak = getStreak();
-  if (!total && !streak) {
-    tile.hidden = true;
-    return;
-  }
   const cleared = total > 0 && doneToday.length === total;
   if (cleared && !state._wasCleared) celebrate();
   state._wasCleared = cleared;
-  tile.classList.toggle("cleared", cleared);
-  const center = total ? `<b>${doneToday.length}/${total}</b>` : icon("check");
-  const line = total
-    ? cleared
-      ? t("focusCleared")
-      : sub(t("focusDone"), { done: doneToday.length, total })
-    : t("focusClear");
-  const streakHtml = streak
-    ? `<span class="streak">${icon("flame")} ${sub(streak === 1 ? t("streakOne") : t("streak"), { n: streak })}</span>`
-    : "";
-  tile.hidden = false;
-  tile.innerHTML = `
-    <div class="ring" style="--p:${pct}" role="img" aria-label="${line}">${center}</div>
-    <div class="focus-body">
-      <p class="k">${icon("focus")} ${t("focusTitle")}</p>
-      <p class="v">${line}</p>
-      ${streakHtml}
-    </div>`;
+  const todayEl = document.getElementById("today");
+  if (todayEl) todayEl.classList.toggle("cleared", cleared);
+  const streak = getStreak();
+  const wLabel = weatherLabel(w.code) || "";
+
+  const parts = [];
+  parts.push(
+    `<div class="stat"><span class="stat-ic">${icon("weather")}</span>` +
+    `<b>${w.temp_c != null ? Math.round(w.temp_c) + "°" : "—"}</b>` +
+    `<span class="stat-s">${escapeHtml(wLabel || t("weather"))}</span></div>`
+  );
+  parts.push(
+    `<div class="stat"><span class="stat-ic">${icon("dollar")}</span>` +
+    `<b>${fx.usd_egp != null ? fx.usd_egp : "—"}</b>` +
+    `<span class="stat-s">USD → EGP</span></div>`
+  );
+  parts.push(
+    `<div class="stat"><span class="ring-mini" style="--p:${pct}"><b>${total ? doneToday.length + "/" + total : "—"}</b></span>` +
+    `<span class="stat-s">${cleared ? t("focusCleared") : t("focusTitle")}</span></div>`
+  );
+  if (streak) {
+    parts.push(
+      `<div class="stat"><span class="stat-ic streak-ic">${icon("flame")}</span>` +
+      `<b>${streak}</b><span class="stat-s">${t("insStreak")}</span></div>`
+    );
+  }
+  el.innerHTML = parts.join("");
 }
 
 /* ---------- Hero greeting ---------- */
@@ -775,26 +759,28 @@ function greetSlot() {
   return "night";
 }
 
-function renderHero() {
-  const el = document.getElementById("hero");
-  if (!el) return;
+function renderTodayHead() {
   const slot = greetSlot();
   const iconName = { morning: "sunrise", afternoon: "sun", evening: "sunset", night: "moon" }[slot];
   const raw = state.profile && state.profile.name ? String(state.profile.name).trim() : "";
   const name = raw && raw !== "there" ? raw : "";
   const greet = name ? sub(t("greet_" + slot + "_name"), { name: escapeHtml(name) }) : t("greet_" + slot);
-  let dateStr;
-  try {
-    dateStr = new Date().toLocaleDateString(state.lang === "ar" ? "ar-EG" : state.lang, {
-      weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Cairo",
-    });
-  } catch {
-    dateStr = new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" });
+  const iconEl = document.getElementById("todayIcon");
+  if (iconEl) iconEl.innerHTML = icon(iconName);
+  const g = document.getElementById("todayGreet");
+  if (g) g.innerHTML = greet;
+  const d = document.getElementById("todayDate");
+  if (d) {
+    let ds;
+    try {
+      ds = new Date().toLocaleDateString(state.lang === "ar" ? "ar-EG" : state.lang, {
+        weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Cairo",
+      });
+    } catch {
+      ds = new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" });
+    }
+    d.textContent = `${ds} · ${t("weather")} · ${cairoClockText()}`;
   }
-  el.hidden = false;
-  el.innerHTML =
-    `<div class="hero-icon">${icon(iconName)}</div>` +
-    `<div class="hero-body"><p class="hero-greet">${greet}</p><p class="hero-date">${escapeHtml(dateStr)} · ${t("weather")}</p></div>`;
 }
 
 /* ---------- Celebration ---------- */
@@ -1218,7 +1204,7 @@ function render() {
     head.hidden = true;
     if (clearBtn) clearBtn.hidden = true;
     list.innerHTML = emptyBox(state.search ? t("noSearch") : t("empty"));
-    renderFocus();
+    renderTodayStats();
     renderBudget();
     return;
   }
@@ -1241,7 +1227,7 @@ function render() {
   const rest = items.filter((x) => !isOverdue(x));
   overdueBox.innerHTML = overdue.map(cardHTML).join("");
   list.innerHTML = rest.map(cardHTML).join("");
-  renderFocus();
+  renderTodayStats();
   renderBudget();
   hydratePhotos();
   const ip = document.getElementById("insights");
@@ -1278,7 +1264,8 @@ function cardHTML(task) {
     bits.push(`<span class="sub-progress">${icon("listcheck")} ${subDone}/${subs.length}<span class="bar"><span style="width:${pct}%"></span></span></span>`);
   }
   if (task.note && task.note.trim()) bits.push(`<span class="note-flag" title="note">${icon("note")}</span>`);
-  const metaInner = bits.length ? bits.join('<span class="dot">·</span>') : escapeHtml(task.raw || "");
+  const chipHtml = `<span class="chip">${t(task.category)}</span>`;
+  const metaInner = chipHtml + bits.map((b) => `<span class="dot">·</span>${b}`).join("");
 
   const action = task.done ? t("undo") : t("done");
   const actIcon = task.done ? icon("undo") : icon("check");
@@ -1292,7 +1279,6 @@ function cardHTML(task) {
     </div>
     <div class="card-top">
       <button type="button" class="pin-btn ${task.pinned ? "on" : ""}" data-act="pin" aria-label="${t("pin")}" title="${t("pin")}">${icon("star")}</button>
-      <span class="chip">${t(task.category)}</span>
       <button type="button" class="expand-btn" data-act="expand" aria-label="${t("details")}" title="${t("details")}">${icon("chevron")}</button>
     </div>
     <div class="actions">
@@ -1914,7 +1900,7 @@ function skipInterview() {
 }
 
 async function refreshCoach() {
-  renderHero();
+  renderTodayHead();
   const root = document.getElementById("coach");
   if (!state.profile.done) {
     root.hidden = true;
@@ -2090,6 +2076,7 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) scheduleReminders();
 });
 setInterval(scheduleReminders, 15 * 60 * 1000);
+setInterval(renderTodayHead, 30 * 1000);
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
