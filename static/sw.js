@@ -1,4 +1,4 @@
-const CACHE = "lazem-shell-v10";
+const CACHE = "lazem-shell-v11";
 const SHELL = [
   "./",
   "./index.html",
