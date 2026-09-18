@@ -546,6 +546,84 @@ body.menu-open { overflow: hidden; }
 .actions button[data-act="undo"]:hover { color: var(--accent); border-color: var(--accent); }
 .actions button[data-act="remove"]:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, var(--card)); }
 
+/* ---------- Task detail panel (subtasks / photo / reschedule) ---------- */
+.expand-btn {
+  border: 0; background: none; color: var(--faint); cursor: pointer; padding: 0.2rem;
+  display: grid; place-items: center; border-radius: 8px;
+  transition: color 160ms ease, background-color 160ms ease, transform 240ms ease;
+}
+.expand-btn .ic { width: 1.05rem; height: 1.05rem; }
+.expand-btn:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.card.open .expand-btn { transform: rotate(180deg); color: var(--accent); }
+
+.sub-progress { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-weight: 600; }
+.sub-progress .bar { width: 46px; height: 5px; border-radius: 99px; background: color-mix(in srgb, var(--line) 60%, var(--ink) 6%); overflow: hidden; }
+.sub-progress .bar > span { display: block; height: 100%; background: var(--cat); border-radius: 99px; transition: width 400ms ease; }
+
+.details {
+  grid-column: 1 / -1; margin-top: 0.85rem; padding-top: 0.85rem;
+  border-top: 1px dashed var(--line-strong); display: flex; flex-direction: column; gap: 1rem;
+  animation: rise 0.3s both;
+}
+.det-h { margin: 0 0 0.5rem; font-size: 0.7rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); font-weight: 700; display: flex; align-items: center; gap: 0.35rem; }
+.det-h .ic { width: 0.95rem; height: 0.95rem; }
+
+.resched-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chipbtn {
+  font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--card-2); color: var(--ink);
+  padding: 0.36rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.3rem;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+[data-theme="simple"] .chipbtn { border-radius: var(--radius-xs); }
+.chipbtn .ic { width: 0.9rem; height: 0.9rem; }
+.chipbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+.checklist { display: flex; flex-direction: column; gap: 0.35rem; }
+.check-item { display: flex; align-items: center; gap: 0.55rem; font-size: 0.9rem; }
+.check-box {
+  flex: none; width: 20px; height: 20px; border-radius: 6px; border: 1.6px solid var(--line-strong);
+  background: var(--card); cursor: pointer; display: grid; place-items: center; color: transparent; padding: 0;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.check-box .ic { width: 0.85rem; height: 0.85rem; }
+.check-item.done .check-box { background: var(--cat); border-color: var(--cat); color: var(--btn-fg); }
+.check-item.done .check-text { text-decoration: line-through; color: var(--muted); }
+.check-text { flex: 1; min-width: 0; }
+.check-del { border: 0; background: none; color: var(--faint); cursor: pointer; padding: 0.15rem; display: grid; place-items: center; }
+.check-del .ic { width: 0.85rem; height: 0.85rem; }
+.check-del:hover { color: var(--danger); }
+.check-add { display: flex; gap: 0.4rem; margin-top: 0.15rem; }
+.check-add input {
+  flex: 1; min-width: 0; font: inherit; font-size: 0.88rem; padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: var(--radius-sm);
+}
+.check-add input:focus { outline: none; border-color: var(--accent); }
+.check-add button {
+  flex: none; border: 1px solid var(--line-strong); background: var(--card-2); color: var(--accent);
+  cursor: pointer; border-radius: var(--radius-sm); padding: 0 0.65rem; display: grid; place-items: center;
+}
+.check-add button .ic { width: 1.05rem; height: 1.05rem; }
+.check-add button:hover { border-color: var(--accent); }
+
+.photo-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.photo-thumb { width: 64px; height: 64px; border-radius: var(--radius-sm); object-fit: cover; cursor: pointer; border: 1px solid var(--line); background: var(--card-2); }
+.photo-thumb.loading { display: inline-block; }
+
+.lightbox {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+  background: color-mix(in srgb, #000 82%, transparent); padding: 1.2rem;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: 100%; max-height: 90vh; border-radius: var(--radius); box-shadow: var(--shadow-lg); }
+.lightbox-close {
+  position: absolute; top: 1rem; inset-inline-end: 1rem; width: 40px; height: 40px;
+  border: 0; background: rgba(255, 255, 255, 0.14); color: #fff; border-radius: 12px; cursor: pointer;
+  display: grid; place-items: center;
+}
+.lightbox-close .ic { width: 1.3rem; height: 1.3rem; }
+
 /* ---------- Coach + interview ---------- */
 .interview, .coach {
   position: relative;

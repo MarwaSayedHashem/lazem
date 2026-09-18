@@ -21,6 +21,99 @@ const FILTER_LABEL = {
   done: "filterDone",
 };
 
+state.expanded = new Set();
+
+/* ---------- Photo storage (IndexedDB) ---------- */
+const PHOTO_DB = "lazem-photos";
+const PHOTO_STORE = "photos";
+function photosSupported() {
+  return typeof indexedDB !== "undefined";
+}
+function openPhotoDB() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(PHOTO_DB, 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore(PHOTO_STORE); };
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+async function photoPut(id, dataURL) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).put(dataURL, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function photoGet(id) {
+  const db = await openPhotoDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(PHOTO_STORE, "readonly");
+    const rq = tx.objectStore(PHOTO_STORE).get(id);
+    rq.onsuccess = () => resolve(rq.result || null);
+    rq.onerror = () => resolve(null);
+  });
+}
+async function photoDel(id) {
+  const db = await openPhotoDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+  });
+}
+function downscaleImage(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function hydratePhotos() {
+  document.querySelectorAll("img[data-photo-load]").forEach((el) => {
+    const id = el.getAttribute("data-photo-load");
+    el.removeAttribute("data-photo-load");
+    photoGet(id).then((data) => { if (data) el.src = data; });
+  });
+}
+function openLightbox(id) {
+  photoGet(id).then((data) => {
+    if (!data) return;
+    document.getElementById("lightboxImg").src = data;
+    document.getElementById("lightbox").hidden = false;
+  });
+}
+
+/* ---------- Subtasks ---------- */
+function addSubtask(id, text) {
+  const task = state.tasks.find((x) => x.id === id);
+  if (!task) return;
+  const v = (text || "").trim();
+  if (!v) return;
+  if (!Array.isArray(task.subtasks)) task.subtasks = [];
+  task.subtasks.push({ id: uid(), text: v.slice(0, 80), done: false });
+  state.expanded.add(id);
+  save();
+  render();
+}
+
 function detectLang() {
   const stored = localStorage.getItem(LANG_STORE);
   if (stored && I18N[stored]) return stored;
@@ -678,17 +771,22 @@ function render() {
   list.innerHTML = rest.map(cardHTML).join("");
   renderFocus();
   renderBudget();
+  hydratePhotos();
   const ip = document.getElementById("insights");
   if (ip && !ip.hidden) renderInsights();
 }
 
 function cardHTML(task) {
   const overdue = isOverdue(task);
+  const expanded = state.expanded.has(task.id);
+  const subs = Array.isArray(task.subtasks) ? task.subtasks : [];
+  const subDone = subs.filter((s) => s.done).length;
   const cls = ["card"];
   if (task.category) cls.push(task.category);
   if (overdue) cls.push("overdue");
   if (task.done) cls.push("done");
   if (task.pinned) cls.push("pinned");
+  if (expanded) cls.push("open");
   const catIcon = icon(CATEGORY_ICON[task.category] || "note");
 
   const bits = [];
@@ -696,6 +794,10 @@ function cardHTML(task) {
   if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
   if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
   if (task.repeat) bits.push(`<span class="repeat-flag">${icon("repeat")} ${t("repeat_" + task.repeat)}</span>`);
+  if (subs.length) {
+    const pct = Math.round((subDone / subs.length) * 100);
+    bits.push(`<span class="sub-progress">${icon("listcheck")} ${subDone}/${subs.length}<span class="bar"><span style="width:${pct}%"></span></span></span>`);
+  }
   const metaInner = bits.length ? bits.join('<span class="dot">·</span>') : escapeHtml(task.raw || "");
 
   const action = task.done ? t("undo") : t("done");
@@ -711,13 +813,56 @@ function cardHTML(task) {
     <div class="card-top">
       <button type="button" class="pin-btn ${task.pinned ? "on" : ""}" data-act="pin" aria-label="${t("pin")}" title="${t("pin")}">${icon("star")}</button>
       <span class="chip">${t(task.category)}</span>
+      <button type="button" class="expand-btn" data-act="expand" aria-label="${t("details")}" title="${t("details")}">${icon("chevron")}</button>
     </div>
     <div class="actions">
       <button type="button" data-act="${actKind}">${actIcon}<span>${action}</span></button>
       <button type="button" data-act="repeat" class="${task.repeat ? "on" : ""}" title="${t("repeatCycle")}">${icon("repeat")}<span>${task.repeat ? t("repeat_" + task.repeat) : t("repeatOff")}</span></button>
       <button type="button" data-act="remove">${icon("trash")}<span>${t("remove")}</span></button>
     </div>
+    ${expanded ? detailsHTML(task, subs) : ""}
   </article>`;
+}
+
+function detailsHTML(task, subs) {
+  const items = subs
+    .map(
+      (s) =>
+        `<div class="check-item${s.done ? " done" : ""}">` +
+        `<button type="button" class="check-box" data-act="subtask-toggle" data-sid="${s.id}" aria-label="toggle">${icon("check")}</button>` +
+        `<span class="check-text">${escapeHtml(s.text)}</span>` +
+        `<button type="button" class="check-del" data-act="subtask-del" data-sid="${s.id}" aria-label="remove">${icon("close")}</button></div>`
+    )
+    .join("");
+  const photoBlock = photosSupported()
+    ? `<div><p class="det-h">${icon("camera")} ${t("photo")}</p><div class="photo-row">` +
+      (task.photo
+        ? `<img class="photo-thumb" data-photo-load="${task.id}" data-act="photo-view" alt="attachment" />` +
+          `<button type="button" class="chipbtn" data-act="photo-del">${icon("trash")} ${t("removePhoto")}</button>`
+        : `<button type="button" class="chipbtn" data-act="photo-add">${icon("camera")} ${t("addPhoto")}</button>`) +
+      `</div></div>`
+    : "";
+  return `<div class="details">
+    <div>
+      <p class="det-h">${icon("clockplus")} ${t("reschedule")}</p>
+      <div class="resched-row">
+        <button type="button" class="chipbtn" data-act="resched" data-to="today">${t("resToday")}</button>
+        <button type="button" class="chipbtn" data-act="resched" data-to="tomorrow">${t("resTomorrow")}</button>
+        <button type="button" class="chipbtn" data-act="resched" data-to="week">${t("resWeek")}</button>
+      </div>
+    </div>
+    <div>
+      <p class="det-h">${icon("listcheck")} ${t("checklist")}</p>
+      <div class="checklist">
+        ${items}
+        <div class="check-add">
+          <input type="text" class="subtask-input" maxlength="80" placeholder="${t("addItem")}" />
+          <button type="button" data-act="subtask-add" aria-label="${t("addItem")}">${icon("plus")}</button>
+        </div>
+      </div>
+    </div>
+    ${photoBlock}
+  </div>`;
 }
 
 function escapeHtml(s) {
@@ -777,30 +922,104 @@ document.getElementById("clearSearch").addEventListener("click", () => {
 });
 
 document.body.addEventListener("click", (e) => {
-  const btn = e.target.closest("button[data-act]");
+  const btn = e.target.closest("[data-act]");
   if (!btn) return;
   const card = btn.closest("[data-id]");
   const id = card && card.dataset.id;
   const task = state.tasks.find((x) => x.id === id);
   if (!task) return;
   const act = btn.dataset.act;
+
+  // Actions that don't trigger the standard save/render tail:
+  if (act === "photo-add") {
+    state._photoTarget = id;
+    document.getElementById("cardPhotoInput").click();
+    return;
+  }
+  if (act === "photo-view") {
+    openLightbox(id);
+    return;
+  }
+  if (act === "subtask-add") {
+    const inp = card.querySelector(".subtask-input");
+    if (inp) addSubtask(id, inp.value);
+    return;
+  }
+
   if (act === "done") {
     task.done = true;
     task.doneAt = todayISO();
     markActivity();
     spawnNext(task);
-  }
-  if (act === "undo") task.done = false;
-  if (act === "pin") task.pinned = !task.pinned;
-  if (act === "repeat") {
+  } else if (act === "undo") {
+    task.done = false;
+  } else if (act === "pin") {
+    task.pinned = !task.pinned;
+  } else if (act === "expand") {
+    if (state.expanded.has(id)) state.expanded.delete(id);
+    else state.expanded.add(id);
+  } else if (act === "resched") {
+    const to = btn.dataset.to;
+    task.due = to === "today" ? todayISO() : to === "tomorrow" ? plusDays(todayISO(), 1) : plusDays(todayISO(), 7);
+  } else if (act === "repeat") {
     const order = [null, "daily", "weekly", "monthly"];
     task.repeat = order[(order.indexOf(task.repeat || null) + 1) % order.length];
+  } else if (act === "subtask-toggle") {
+    const s = (task.subtasks || []).find((x) => x.id === btn.dataset.sid);
+    if (s) s.done = !s.done;
+  } else if (act === "subtask-del") {
+    task.subtasks = (task.subtasks || []).filter((x) => x.id !== btn.dataset.sid);
+  } else if (act === "photo-del") {
+    photoDel(id);
+    task.photo = false;
+  } else if (act === "remove") {
+    if (task.photo) photoDel(id);
+    state.tasks = state.tasks.filter((x) => x.id !== id);
   }
-  if (act === "remove") state.tasks = state.tasks.filter((x) => x.id !== id);
   save();
   render();
   refreshCoach();
   scheduleReminders();
+});
+
+/* Add a checklist item with Enter */
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  const inp = e.target.closest && e.target.closest(".subtask-input");
+  if (!inp) return;
+  e.preventDefault();
+  const card = inp.closest("[data-id]");
+  if (card) addSubtask(card.dataset.id, inp.value);
+});
+
+/* Photo capture */
+document.getElementById("cardPhotoInput").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  const id = state._photoTarget;
+  e.target.value = "";
+  if (!file || !id) return;
+  try {
+    const dataURL = await downscaleImage(file, 1000);
+    await photoPut(id, dataURL);
+    const task = state.tasks.find((x) => x.id === id);
+    if (task) {
+      task.photo = true;
+      state.expanded.add(id);
+      save();
+      render();
+    }
+  } catch {}
+});
+
+/* Lightbox */
+function closeLightbox() {
+  const lb = document.getElementById("lightbox");
+  lb.hidden = true;
+  document.getElementById("lightboxImg").src = "";
+}
+document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+document.getElementById("lightbox").addEventListener("click", (e) => {
+  if (e.target.id === "lightbox") closeLightbox();
 });
 
 document.getElementById("lang").addEventListener("change", (e) => {
@@ -831,7 +1050,10 @@ drawer.addEventListener("click", (e) => {
   if (e.target === drawer) setMenu(false);
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !drawer.hidden) setMenu(false);
+  if (e.key !== "Escape") return;
+  const lb = document.getElementById("lightbox");
+  if (lb && !lb.hidden) { closeLightbox(); return; }
+  if (!drawer.hidden) setMenu(false);
 });
 
 /* Backup / restore */

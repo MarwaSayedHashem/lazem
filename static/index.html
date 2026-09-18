@@ -121,6 +121,11 @@
       <p><a href="privacy.html" data-i18n="privacy">Privacy</a></p>
     </footer>
   </div>
+  <input type="file" id="cardPhotoInput" accept="image/*" capture="environment" hidden />
+  <div class="lightbox" id="lightbox" hidden>
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close"><i data-ic="close"></i></button>
+    <img id="lightboxImg" alt="Attachment" />
+  </div>
   <script src="icons.js"></script>
   <script src="i18n.js"></script>
   <script src="lexicon.js"></script>

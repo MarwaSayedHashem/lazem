@@ -37,6 +37,9 @@ const ICON_PATHS = {
   sunset: '<path d="M12 9V2"/><path d="m16 5-4 4-4-4"/><path d="M3 18h18"/><path d="M5 18a7 7 0 0 1 14 0"/><path d="M2 14h1M21 14h1"/>',
   chart: '<line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="7" rx="0.5"/><rect x="10.5" y="6" width="3" height="12" rx="0.5"/><rect x="16" y="13" width="3" height="5" rx="0.5"/>',
   chevron: '<polyline points="6 9 12 15 18 9"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"/><circle cx="12" cy="13" r="3.5"/>',
+  listcheck: '<path d="M11 6h10M11 12h10M11 18h10"/><path d="m3 6 1.4 1.4L7 5"/><path d="m3 12 1.4 1.4L7 11"/><path d="m3 18 1.4 1.4L7 17"/>',
+  clockplus: '<path d="M12 21a9 9 0 1 1 8.6-11.5"/><path d="M12 7v5l2.5 1.5"/><path d="M17 15v6M14 18h6"/>',
 };
 
 function icon(name, cls) {
