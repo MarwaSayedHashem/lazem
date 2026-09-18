@@ -29,6 +29,10 @@ def test_index_served():
     assert r.status_code == 200
     assert "Lazem" in r.text
     assert "themes" in r.text
+    css = client.get("/styles.css")
+    assert css.status_code == 200
+    js = client.get("/engine.js")
+    assert js.status_code == 200
 
 
 def test_related_endpoint():

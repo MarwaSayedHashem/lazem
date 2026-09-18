@@ -115,8 +115,8 @@ function startClock() {
 async function loadBriefing() {
   const root = document.getElementById("brief");
   try {
-    const r = await fetch("/api/briefing");
-    const data = await r.json();
+    const data = await getBriefing();
+    state.briefing = data;
     const w = data.weather || {};
     const fx = data.fx || {};
     const wLabel = weatherLabel(w.code) || (state.lang === "ar" ? w.label_ar : w.label_en) || "";
@@ -243,13 +243,7 @@ function escapeHtml(s) {
 }
 
 async function addTask(text) {
-  const r = await fetch("/api/parse", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!r.ok) throw new Error("parse failed");
-  const parsed = await r.json();
+  const parsed = parseTask(text);
   const task = { id: uid(), done: false, ...parsed };
   state.tasks.unshift(task);
   save();
@@ -443,16 +437,8 @@ async function refreshCoach() {
     return;
   }
   try {
-    const r = await fetch("/api/coach", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        profile: state.profile,
-        tasks: state.tasks,
-      }),
-    });
-    if (!r.ok) throw new Error("coach");
-    const plan = await r.json();
+    if (!state.briefing) state.briefing = await getBriefing();
+    const plan = planDay(state.profile, state.tasks, state.briefing);
     const params = { name: plan.name || state.profile.name || "there" };
     const items = (plan.items || [])
       .map((item) => `<li>${escapeHtml(interpolate(item.code, item.params))}</li>`)
@@ -478,17 +464,11 @@ async function refreshCoach() {
 async function showRelated(task) {
   const root = document.getElementById("related");
   try {
-    const r = await fetch("/api/related", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        task,
-        existing: state.tasks.filter((x) => x.id !== task.id),
-      }),
-    });
-    if (!r.ok) throw new Error("related");
-    const data = await r.json();
-    const items = data.items || [];
+    const items = relatedSuggestions(
+      task,
+      state.tasks.filter((x) => x.id !== task.id),
+      state.briefing
+    );
     if (!items.length) {
       root.hidden = true;
       root.innerHTML = "";

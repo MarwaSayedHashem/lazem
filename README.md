@@ -38,6 +38,8 @@ uvicorn app.main:app --reload --port 8766
 
 Open http://127.0.0.1:8766
 
+Live: https://marwasayedhashem.github.io/lazem/
+
 ```bash
 pytest
 ```
@@ -48,13 +50,11 @@ docker compose up --build
 
 ## Host it (public demo)
 
-The UI stays local-first: each visitor’s inbox lives in **their** browser. The server only parses notes and fetches Cairo weather / USD-EGP.
+Live app: https://marwasayedhashem.github.io/lazem/
 
-1. Push this repo to GitHub (`MarwaSayedHashem/lazem`).
-2. On [Render](https://render.com) (free web service): New → Blueprint → this repo, or New Web Service → Python → start command from the Procfile.
-3. Health check: `/api/health`. Open the `onrender.com` URL.
+The UI is local-first: each visitor’s inbox lives in **their** browser. GitHub Pages serves the static app; weather and USD/EGP are fetched in the browser. The FastAPI server in this repo is for local runs, tests, and Docker.
 
-Same start command works on Railway or Fly if you prefer those.
+Optional Python host (Render/Railway/Fly): start command in the Procfile, health check `/api/health`.
 
 ## API
 

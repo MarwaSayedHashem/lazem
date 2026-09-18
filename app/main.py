@@ -67,3 +67,13 @@ def index() -> FileResponse:
 
 
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+@app.get("/{name}")
+def public_file(name: str) -> FileResponse:
+    path = (STATIC / name).resolve()
+    if STATIC.resolve() not in path.parents and path != STATIC.resolve():
+        raise HTTPException(status_code=404, detail="not found")
+    if path.is_file():
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="not found")
