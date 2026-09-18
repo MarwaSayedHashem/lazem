@@ -1038,7 +1038,7 @@ function addInstallment(provider, monthly, months, due) {
   scheduleReminders();
   showToast(sub(t("installDone"), { n: months }));
 }
-function openInstallSheet() {
+function openInstallSheet(prefill) {
   const provOpts =
     ["ValU", "Souhoola", "Halan", "Aman", "Sympl"].map((p) => `<option value="${p}">${p}</option>`).join("") +
     `<option value="__card">${t("provCard")}</option><option value="__other">${t("provOther")}</option>`;
@@ -1058,6 +1058,42 @@ function openInstallSheet() {
   if (sel) sel.addEventListener("change", (e) => {
     document.getElementById("instCustomWrap").hidden = e.target.value !== "__other";
   });
+  if (prefill) {
+    if (prefill.amount) document.getElementById("instAmount").value = prefill.amount;
+    if (prefill.due) document.getElementById("instDue").value = prefill.due;
+    if (prefill.provider) {
+      const known = ["ValU", "Souhoola", "Halan", "Aman", "Sympl"].includes(prefill.provider);
+      if (known) {
+        sel.value = prefill.provider;
+      } else {
+        sel.value = "__other";
+        document.getElementById("instCustomWrap").hidden = false;
+        document.getElementById("instCustom").value = prefill.provider;
+      }
+    }
+  }
+}
+
+/* Smart routing for an incoming message (pasted, shared, or from clipboard). */
+function handleIncomingMessage(text) {
+  const clean = (text || "").trim();
+  if (!clean) return;
+  const info = smartParseMessage(clean);
+  if (info.isInstallment && info.amount) {
+    openInstallSheet({ provider: info.provider, amount: info.amount, due: info.due });
+    showToast(t("detectedInstallment"));
+  } else {
+    addTask(clean).catch(() => {});
+  }
+}
+
+/* Web Share Target: a message shared into the installed app arrives as query params. */
+function readShareTarget() {
+  const p = new URLSearchParams(location.search);
+  const text = [p.get("title"), p.get("text"), p.get("url")].filter(Boolean).join(" ").trim();
+  if (!text) return;
+  try { history.replaceState(null, "", location.pathname); } catch {}
+  handleIncomingMessage(text);
 }
 
 /* ---------- Paste-from-SMS ---------- */
@@ -1067,7 +1103,8 @@ function openSmsSheet() {
     `<h3>${icon("bill")} ${t("smsTitle")}</h3>` +
     `<p class="sheet-sub">${t("smsHint")}</p>` +
     `<div class="sheet-field"><textarea id="smsText" maxlength="600"></textarea></div>` +
-    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="sms-parse">${icon("check")} ${t("smsParse")}</button></div>`
+    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="sms-parse">${icon("check")} ${t("smsParse")}</button>` +
+    `<button class="sheet-btn ghost" data-sheet="clipboard">${icon("copy")} ${t("pasteClipboard")}</button></div>`
   );
 }
 
@@ -1474,7 +1511,18 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
     const txt = ((document.getElementById("smsText") || {}).value || "").trim();
     if (!txt) { showToast(t("smsEmpty")); return; }
     closeSheet();
-    addTask(txt).catch(() => {});
+    handleIncomingMessage(txt);
+    return;
+  }
+  if (act === "clipboard") {
+    try {
+      const txt = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText() : "";
+      if (!txt || !txt.trim()) { showToast(t("clipEmpty")); return; }
+      const ta = document.getElementById("smsText");
+      if (ta) ta.value = txt.trim();
+    } catch {
+      showToast(t("clipDenied"));
+    }
     return;
   }
 });
@@ -2002,6 +2050,7 @@ refreshCoach();
 updateReminderUI();
 scheduleReminders();
 checkSharedLink();
+readShareTarget();
 
 /* Re-check reminder timers on focus and around the day boundary. */
 document.addEventListener("visibilitychange", () => {

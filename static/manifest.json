@@ -12,6 +12,11 @@
   "lang": "ar",
   "dir": "auto",
   "categories": ["productivity", "lifestyle", "utilities"],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
   "icons": [
     {
       "src": "icons/icon-192.png",

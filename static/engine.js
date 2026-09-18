@@ -170,6 +170,40 @@ function nextDue(iso, repeat) {
   return iso;
 }
 
+const PROVIDER_HINTS = {
+  ValU: ["valu", "فاليو"],
+  Souhoola: ["souhoola", "سهولة", "سهوله"],
+  Halan: ["halan", "حالان", "هالان"],
+  Aman: ["aman", "أمان", "امان"],
+  Sympl: ["sympl", "سيمبل"],
+};
+const INSTALLMENT_WORDS = [
+  "installment", "instalment", "قسط", "أقساط", "اقساط", "القسط", "دفعة", "دفعه",
+  "credit card", "بطاقة", "بطاقه", "visa", "mastercard", "فيزا",
+];
+
+function detectProvider(text) {
+  const low = (text || "").toLowerCase();
+  for (const name of Object.keys(PROVIDER_HINTS)) {
+    if (PROVIDER_HINTS[name].some((h) => low.includes(h) || text.includes(h))) return name;
+  }
+  return null;
+}
+
+/* Understand a pasted/shared message: amount, due date, provider, installment? */
+function smartParseMessage(text) {
+  const todayIso = cairoStamp().isoDate;
+  let amount = parseAmount(text);
+  const due = parseDue(text, todayIso);
+  const provider = detectProvider(text);
+  const isInstallment = !!provider || containsAny(text, INSTALLMENT_WORDS);
+  if (isInstallment && amount == null) {
+    const m = String(text).match(/\b(\d{2,7}(?:[.,]\d+)?)\b/);
+    if (m) amount = parseFloat(m[1].replace(",", "."));
+  }
+  return { amount, due, provider, isInstallment };
+}
+
 function classify(text) {
   if (billKind(text)) return "bill";
   if (containsAny(text, LEX.MED_HINTS)) return "medicine";
