@@ -265,6 +265,17 @@ body.menu-open { overflow: hidden; }
 .data-btn .ic { color: var(--accent); }
 .data-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
 [data-theme="simple"] .data-btn:hover { transform: none; }
+.converter { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+.conv-field {
+  display: flex; align-items: center; gap: 0.4rem;
+  border: 1px solid var(--line-strong); background: var(--card); border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+}
+.conv-field:focus-within { border-color: var(--accent); }
+.conv-field input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; outline: none; }
+.conv-field span { font-size: 0.78rem; color: var(--muted); font-weight: 700; }
+.conv-rate { margin: 0.5rem 0 0; font-size: 0.78rem; color: var(--muted); }
+
 .drawer-foot {
   margin-top: 1.7rem; padding-top: 1rem; border-top: 1px solid var(--line);
   font-size: 0.76rem; color: var(--muted); line-height: 1.6;
@@ -499,6 +510,13 @@ body.menu-open { overflow: hidden; }
 .list-head h2 { margin: 0; font-family: var(--display); font-size: 1.05rem; font-weight: 600; }
 .list-head .lh-right { display: inline-flex; align-items: center; gap: 0.6rem; }
 .list-head .count { font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sort-sel {
+  font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--muted);
+  border: 1px solid var(--line-strong); background: var(--card);
+  border-radius: 999px; padding: 0.3rem 0.6rem; cursor: pointer; max-width: 9.5rem;
+}
+[data-theme="simple"] .sort-sel { border-radius: var(--radius-xs); }
+.sort-sel:focus { outline: none; border-color: var(--accent); }
 .clear-done { color: var(--danger); }
 .clear-done:hover { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--card)); }
 .stack { display: flex; flex-direction: column; gap: 0.65rem; }

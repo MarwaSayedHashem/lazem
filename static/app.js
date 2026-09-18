@@ -23,6 +23,93 @@ const FILTER_LABEL = {
 
 state.expanded = new Set();
 state.dateFilter = null;
+const SORT_STORE = "lazem.sort.v1";
+state.sort = localStorage.getItem(SORT_STORE) || "due";
+
+/* ---------- Sorting ---------- */
+const SORT_OPTS = ["due", "amount", "az", "added"];
+function fillSort() {
+  const sel = document.getElementById("sortSel");
+  if (!sel) return;
+  sel.innerHTML = SORT_OPTS.map((s) => `<option value="${s}">${t("sort_" + s)}</option>`).join("");
+  sel.value = SORT_OPTS.includes(state.sort) ? state.sort : "due";
+}
+function sortItems(items) {
+  const byPin = (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+  const cmp = {
+    added: () => 0,
+    due: (a, b) => (a.due || "9999-99-99").localeCompare(b.due || "9999-99-99"),
+    amount: (a, b) => Number(b.amount || 0) - Number(a.amount || 0),
+    az: (a, b) => displayTitle(a).localeCompare(displayTitle(b)),
+  }[state.sort] || (() => 0);
+  return items.slice().sort((a, b) => byPin(a, b) || cmp(a, b));
+}
+
+/* ---------- Calendar export (.ics) ---------- */
+function icsEscape(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+function buildICS(tasks) {
+  const dt = new Date();
+  const stamp = dt.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Lazem//Household//EN", "CALSCALE:GREGORIAN"];
+  tasks.forEach((task) => {
+    if (!task.due) return;
+    const ymd = task.due.replace(/-/g, "");
+    lines.push("BEGIN:VEVENT", "UID:" + (task.id || uid()) + "@lazem", "DTSTAMP:" + stamp);
+    if (task.time) {
+      const hm = String(task.time).replace(":", "");
+      lines.push("DTSTART:" + ymd + "T" + hm + "00");
+    } else {
+      lines.push("DTSTART;VALUE=DATE:" + ymd);
+      lines.push("DTEND;VALUE=DATE:" + plusDays(task.due, 1).replace(/-/g, ""));
+    }
+    const summary = displayTitle(task) + (task.amount ? ` (${task.amount} EGP)` : "");
+    lines.push("SUMMARY:" + icsEscape(summary));
+    if (task.note && task.note.trim()) lines.push("DESCRIPTION:" + icsEscape(task.note.trim()));
+    lines.push("END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+function downloadICS(tasks, name) {
+  const withDue = tasks.filter((x) => x.due);
+  if (!withDue.length) return;
+  const blob = new Blob([buildICS(withDue)], { type: "text/calendar" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = (name || "lazem") + ".ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------- Currency converter ---------- */
+function convRate() {
+  const fx = state.briefing && state.briefing.fx;
+  return fx && fx.usd_egp ? Number(fx.usd_egp) : null;
+}
+function updateConverter() {
+  const rate = convRate();
+  const note = document.getElementById("convRate");
+  const usd = document.getElementById("convUsd");
+  const egp = document.getElementById("convEgp");
+  if (!note) return;
+  if (!rate) {
+    note.textContent = t("convNoRate");
+    if (usd) usd.disabled = true;
+    if (egp) egp.disabled = true;
+    return;
+  }
+  if (usd) usd.disabled = false;
+  if (egp) egp.disabled = false;
+  note.textContent = sub(t("convRate"), { rate });
+  if (usd && document.activeElement !== usd && document.activeElement !== egp) {
+    if (usd.value) egp.value = (Number(usd.value) * rate).toFixed(2);
+  }
+}
 
 /* ---------- Photo storage (IndexedDB) ---------- */
 const PHOTO_DB = "lazem-photos";
@@ -497,10 +584,12 @@ function applyLang() {
   const search = document.getElementById("search");
   if (search) search.placeholder = t("searchPlaceholder");
   applyTheme(currentTheme());
+  fillSort();
   renderShortcuts();
   renderInterview();
   refreshCoach();
   updateReminderUI();
+  updateConverter();
 }
 
 function todayISO() {
@@ -562,6 +651,7 @@ async function loadBriefing() {
   }
   renderFocus();
   renderBudget();
+  updateConverter();
 }
 
 function renderFocus() {
@@ -802,7 +892,7 @@ function render() {
   const loc = state.lang === "ar" ? "ar-EG" : state.lang;
   renderAgenda();
   let items = state.tasks.filter(visible).filter(matchesSearch);
-  items = items.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  items = sortItems(items);
 
   const clearBtn = document.getElementById("clearDoneBtn");
 
@@ -915,6 +1005,7 @@ function detailsHTML(task, subs) {
         <button type="button" class="chipbtn" data-act="resched" data-to="today">${t("resToday")}</button>
         <button type="button" class="chipbtn" data-act="resched" data-to="tomorrow">${t("resTomorrow")}</button>
         <button type="button" class="chipbtn" data-act="resched" data-to="week">${t("resWeek")}</button>
+        <button type="button" class="chipbtn" data-act="ics">${icon("calendar")} ${t("addToCalendar")}</button>
       </div>
     </div>
     <div>
@@ -1041,6 +1132,29 @@ document.getElementById("installBtn").addEventListener("click", async () => {
   if (b) b.hidden = true;
 });
 
+document.getElementById("sortSel").addEventListener("change", (e) => {
+  state.sort = e.target.value;
+  localStorage.setItem(SORT_STORE, state.sort);
+  render();
+});
+
+document.getElementById("icsBtn").addEventListener("click", () => {
+  downloadICS(state.tasks.filter((x) => !x.done && x.due), "lazem-tasks");
+});
+
+document.getElementById("convUsd").addEventListener("input", (e) => {
+  const rate = convRate();
+  const egp = document.getElementById("convEgp");
+  if (!rate) return;
+  egp.value = e.target.value ? (Number(e.target.value) * rate).toFixed(2) : "";
+});
+document.getElementById("convEgp").addEventListener("input", (e) => {
+  const rate = convRate();
+  const usd = document.getElementById("convUsd");
+  if (!rate) return;
+  usd.value = e.target.value ? (Number(e.target.value) / rate).toFixed(2) : "";
+});
+
 /* Search */
 const searchInput = document.getElementById("search");
 const searchbar = document.getElementById("searchbar");
@@ -1107,6 +1221,9 @@ document.body.addEventListener("click", (e) => {
     if (s) s.done = !s.done;
   } else if (act === "subtask-del") {
     task.subtasks = (task.subtasks || []).filter((x) => x.id !== btn.dataset.sid);
+  } else if (act === "ics") {
+    downloadICS([task], "lazem-" + (displayTitle(task) || "task").slice(0, 24).replace(/\s+/g, "-").toLowerCase());
+    return;
   } else if (act === "photo-del") {
     photoDel(id);
     task.photo = false;

@@ -52,8 +52,16 @@
         <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Enable reminders</span></button>
         <p class="remind-note" id="remindNote" data-i18n="remindNote">Get a notification when a dose or bill is due. Works while Lazem is open in the background.</p>
 
+        <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuConverter">Currency</span></p>
+        <div class="converter">
+          <label class="conv-field"><input id="convUsd" type="number" inputmode="decimal" min="0" step="any" placeholder="0" /><span>USD</span></label>
+          <label class="conv-field"><input id="convEgp" type="number" inputmode="decimal" min="0" step="any" placeholder="0" /><span>EGP</span></label>
+        </div>
+        <p class="conv-rate" id="convRate"></p>
+
         <p class="drawer-h"><i data-ic="shield"></i><span data-i18n="menuData">Your data</span></p>
         <div class="data-actions">
+          <button type="button" class="data-btn" id="icsBtn"><i data-ic="calendar"></i><span data-i18n="exportCalendar">Add all to calendar</span></button>
           <button type="button" class="data-btn" id="exportBtn"><i data-ic="download"></i><span data-i18n="exportData">Export a backup</span></button>
           <button type="button" class="data-btn" id="importBtn"><i data-ic="upload"></i><span data-i18n="importData">Restore from backup</span></button>
           <input type="file" id="importFile" accept="application/json,.json" hidden />
@@ -119,6 +127,7 @@
     <div class="list-head" id="listHead" hidden>
       <h2 id="listTitle"></h2>
       <span class="lh-right">
+        <select id="sortSel" class="sort-sel" aria-label="Sort"></select>
         <span class="count" id="listCount"></span>
         <button type="button" class="chipbtn clear-done" id="clearDoneBtn" hidden><i data-ic="trash"></i><span data-i18n="clearCompleted">Clear completed</span></button>
       </span>
