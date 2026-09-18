@@ -1074,26 +1074,47 @@ function openInstallSheet(prefill) {
   }
 }
 
-/* Smart routing for an incoming message (pasted, shared, or from clipboard). */
-function handleIncomingMessage(text) {
+/* Smart routing for an incoming message.
+   auto=true (from automation / share / URL): create the reminder hands-free.
+   auto=false (manual paste): if it looks like an installment, open the plan pre-filled. */
+function handleIncomingMessage(text, auto) {
   const clean = (text || "").trim();
   if (!clean) return;
   const info = smartParseMessage(clean);
-  if (info.isInstallment && info.amount) {
+  if (!auto && info.isInstallment && info.amount) {
     openInstallSheet({ provider: info.provider, amount: info.amount, due: info.due });
     showToast(t("detectedInstallment"));
-  } else {
-    addTask(clean).catch(() => {});
+    return;
   }
+  addTask(clean)
+    .then(() => { if (auto) showToast(t("autoAdded")); })
+    .catch(() => {});
 }
 
-/* Web Share Target: a message shared into the installed app arrives as query params. */
+/* Ingestion endpoint: a message handed in by phone automation (?sms=...),
+   the Web Share Target (?text=/title/url), all create a reminder hands-free. */
 function readShareTarget() {
   const p = new URLSearchParams(location.search);
-  const text = [p.get("title"), p.get("text"), p.get("url")].filter(Boolean).join(" ").trim();
+  const sms = p.get("sms");
+  const shared = [p.get("title"), p.get("text"), p.get("url")].filter(Boolean).join(" ").trim();
+  const text = (sms || shared || "").trim();
   if (!text) return;
   try { history.replaceState(null, "", location.pathname); } catch {}
-  handleIncomingMessage(text);
+  handleIncomingMessage(text, true);
+}
+
+/* In-app setup guide for phone automation → Lazem. */
+function openAutoSheet() {
+  const base = location.origin + location.pathname + "?sms=";
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("share")} ${t("autoTitle")}</h3>` +
+    `<p class="sheet-sub">${t("autoIntro")}</p>` +
+    `<div class="sheet-field"><label for="autoUrl">${t("autoUrlLabel")}</label><input id="autoUrl" readonly value="${escapeHtml(base)}" /></div>` +
+    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="auto-copy">${icon("copy")} ${t("copy")}</button></div>` +
+    `<p class="sheet-sub" style="margin-top:1rem">${t("autoAndroid")}</p>` +
+    `<p class="sheet-sub">${t("autoIos")}</p>`
+  );
 }
 
 /* ---------- Paste-from-SMS ---------- */
@@ -1525,6 +1546,17 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
     }
     return;
   }
+  if (act === "auto-copy") {
+    const i = document.getElementById("autoUrl");
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(i.value);
+      else { i.select(); document.execCommand("copy"); }
+      showToast(t("copied"));
+    } catch {
+      if (i) i.select();
+    }
+    return;
+  }
 });
 document.getElementById("sheet").addEventListener("click", (e) => {
   if (e.target.id === "sheet") closeSheet();
@@ -1532,6 +1564,7 @@ document.getElementById("sheet").addEventListener("click", (e) => {
 
 document.getElementById("addInstallBtn").addEventListener("click", () => { setMenu(false); openInstallSheet(); });
 document.getElementById("pasteSmsBtn").addEventListener("click", () => { setMenu(false); openSmsSheet(); });
+document.getElementById("autoSmsBtn").addEventListener("click", () => { setMenu(false); openAutoSheet(); });
 document.getElementById("icsImportBtn").addEventListener("click", () => document.getElementById("icsImportFile").click());
 document.getElementById("icsImportFile").addEventListener("change", (e) => {
   const file = e.target.files && e.target.files[0];
