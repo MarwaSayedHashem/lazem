@@ -17,3 +17,10 @@ window.LAZEM_FIREBASE = {
   appId: "1:451835728435:web:3595d405ef8636180e8946",
   measurementId: "G-8MN79ZGGCS",
 };
+
+/* Google Calendar / Classroom "Connect" buttons.
+   Paste your OAuth Web client ID here (…apps.googleusercontent.com).
+   While blank, the Connections section stays hidden. */
+window.LAZEM_GOOGLE = {
+  clientId: "",
+};

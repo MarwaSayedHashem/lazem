@@ -1481,6 +1481,34 @@ document.getElementById("convEgp").addEventListener("input", (e) => {
   usd.value = e.target.value ? (Number(e.target.value) / rate).toFixed(2) : "";
 });
 
+/* Import items pulled from a connected service (Google Calendar / Classroom) */
+window.lazemImportItems = (items, source) => {
+  items = Array.isArray(items) ? items : [];
+  const seen = new Set(state.tasks.map((tk) => (tk.title || tk.raw || "") + "|" + (tk.due || "")));
+  let added = 0;
+  items.forEach((it) => {
+    if (!it) return;
+    const key = (it.t || it.r || "") + "|" + (it.d || "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    state.tasks.unshift({
+      id: uid(), done: false, title: it.t || it.r || "Task", raw: it.r || it.t || "",
+      category: it.c || "note", due: it.d || null, time: it.tm || null, amount: it.a || null,
+      repeat: null, bill_kind: null, place: it.pl || null,
+    });
+    added++;
+  });
+  if (added) { save(); render(); refreshCoach(); scheduleReminders(); }
+  showToast(added ? sub(t("connImported"), { n: added, src: source || "" }) : t("connNone"));
+};
+window.lazemConnectError = () => showToast(t("connErr"));
+(() => {
+  const cal = document.getElementById("connCalBtn");
+  const cls = document.getElementById("connClassBtn");
+  if (cal) cal.addEventListener("click", () => window.lazemConnect && window.lazemConnect.calendar && window.lazemConnect.calendar());
+  if (cls) cls.addEventListener("click", () => window.lazemConnect && window.lazemConnect.classroom && window.lazemConnect.classroom());
+})();
+
 document.getElementById("shareBtn").addEventListener("click", () => {
   const tasks = shareableTasks();
   if (!tasks.length) { showToast(t("shareEmpty")); return; }

@@ -71,6 +71,15 @@
         <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Turn on reminders</span></button>
         <p class="remind-note" id="remindNote" data-i18n="remindNote">Then it's automatic — reminders at the time you set, and the day before anything's due. Works while Lazem is open in the background.</p>
 
+        <div id="connectArea" hidden>
+          <p class="drawer-h"><i data-ic="cloud"></i><span data-i18n="menuConnect">Connections</span></p>
+          <div class="data-actions">
+            <button type="button" class="data-btn" id="connCalBtn"><i data-ic="calendar"></i><span data-i18n="connCalendar">Google Calendar</span></button>
+            <button type="button" class="data-btn" id="connClassBtn"><i data-ic="school"></i><span data-i18n="connClassroom">Google Classroom</span></button>
+          </div>
+          <p class="remind-note" data-i18n="connNote">Connect once to pull your events & assignments in automatically.</p>
+        </div>
+
         <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuInstall">Installments & bills</span></p>
         <div class="data-actions">
           <button type="button" class="data-btn" id="addInstallBtn"><i data-ic="coins"></i><span data-i18n="addInstall">Add installment plan</span></button>
@@ -190,5 +199,6 @@
   <script src="engine.js"></script>
   <script src="app.js"></script>
   <script type="module" src="sync.js"></script>
+  <script type="module" src="connectors.js"></script>
 </body>
 </html>
