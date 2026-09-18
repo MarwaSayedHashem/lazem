@@ -445,5 +445,25 @@ const LEX = {
     "завтра",
     "فردا",
     "کل"
+  ],
+  "HEALTH_HINTS": [
+    "doctor", "appointment", "dentist", "clinic", "hospital", "checkup", "check-up",
+    "vaccine", "vaccination", "lab test", "blood test", "x-ray", "therapy", "gym",
+    "workout", "exercise", "yoga", "walk", "jog", "run", "steps", "self-care",
+    "دكتور", "طبيب", "عيادة", "مستشفى", "كشف", "تطعيم", "تحليل", "أشعة", "أسنان",
+    "جيم", "تمرين", "تمارين", "مشي", "رياضة", "يوجا", "صحة"
+  ],
+  "SCHOOL_HINTS": [
+    "homework", "school", "exam", "quiz", "study", "studying", "revise", "revision",
+    "lesson", "class", "assignment", "nursery", "daycare", "kindergarten",
+    "tuition", "teacher", "parent meeting", "report card",
+    "مدرسة", "واجب", "امتحان", "مذاكرة", "درس", "حصة", "مشروع", "حضانة", "روضة",
+    "نادي", "معلم", "مدرّس", "اولاد", "أولاد"
+  ],
+  "WORK_HINTS": [
+    "meeting", "meet", "deadline", "report", "email", "e-mail", "presentation",
+    "client", "invoice", "standup", "stand-up", "sprint", "agenda", "interview",
+    "اجتماع", "ميتنج", "تسليم", "ديدلاين", "تقرير", "عميل", "عرض", "مكالمة عمل",
+    "بريد", "ايميل", "مراجعة", "شغل"
   ]
 };

@@ -6,6 +6,7 @@ const state = {
   lang: detectLang(),
   filter: "open",
   tasks: loadTasks(),
+  shortcuts: loadShortcuts(),
 };
 
 function detectLang() {
@@ -28,6 +29,36 @@ function loadTasks() {
 
 function save() {
   localStorage.setItem(STORE, JSON.stringify(state.tasks));
+}
+
+/* Custom shortcuts: user-defined one-tap quick-adds, stored locally. */
+const SHORTCUTS_STORE = "lazem.shortcuts.v1";
+
+function loadShortcuts() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SHORTCUTS_STORE) || "null");
+    if (Array.isArray(raw)) return raw;
+  } catch {}
+  return ["gym 7am", "call family", "drink water"];
+}
+
+function saveShortcuts() {
+  localStorage.setItem(SHORTCUTS_STORE, JSON.stringify(state.shortcuts));
+}
+
+function renderShortcuts() {
+  const root = document.getElementById("shortcuts");
+  if (!root) return;
+  const chips = (state.shortcuts || [])
+    .map(
+      (s) =>
+        `<span class="shortcut"><button type="button" data-shortcut-add="${escapeHtml(s)}">${escapeHtml(s)}</button>` +
+        `<button type="button" data-shortcut-del="${escapeHtml(s)}" aria-label="remove">✕</button></span>`
+    )
+    .join("");
+  root.innerHTML =
+    `<p class="k">${t("shortcutsTitle")}</p>${chips}` +
+    `<button type="button" class="shortcut-add" data-shortcut-new>${t("addShortcut")}</button>`;
 }
 
 function t(key) {
@@ -80,6 +111,7 @@ function applyLang() {
   });
   document.getElementById("note").placeholder = t("placeholder");
   applyTheme(currentTheme());
+  renderShortcuts();
   renderInterview();
   refreshCoach();
 }
@@ -532,6 +564,33 @@ document.getElementById("related").addEventListener("click", async (e) => {
     await addTask(btn.dataset.add);
   } catch {
     /* keep chips */
+  }
+});
+
+document.getElementById("shortcuts").addEventListener("click", async (e) => {
+  const add = e.target.closest("[data-shortcut-add]");
+  if (add) {
+    try {
+      await addTask(add.dataset.shortcutAdd);
+    } catch {
+      /* ignore parse errors */
+    }
+    return;
+  }
+  const del = e.target.closest("[data-shortcut-del]");
+  if (del) {
+    state.shortcuts = state.shortcuts.filter((s) => s !== del.dataset.shortcutDel);
+    saveShortcuts();
+    renderShortcuts();
+    return;
+  }
+  if (e.target.closest("[data-shortcut-new]")) {
+    const value = (window.prompt(t("newShortcut")) || "").trim();
+    if (value && !state.shortcuts.includes(value)) {
+      state.shortcuts.unshift(value);
+      saveShortcuts();
+      renderShortcuts();
+    }
   }
 });
 

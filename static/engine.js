@@ -143,6 +143,9 @@ function parseDue(text, todayIso) {
 function classify(text) {
   if (billKind(text)) return "bill";
   if (containsAny(text, LEX.MED_HINTS)) return "medicine";
+  if (LEX.HEALTH_HINTS && containsAny(text, LEX.HEALTH_HINTS)) return "health";
+  if (LEX.SCHOOL_HINTS && containsAny(text, LEX.SCHOOL_HINTS)) return "school";
+  if (LEX.WORK_HINTS && containsAny(text, LEX.WORK_HINTS)) return "work";
   if (containsAny(text, LEX.ERRAND_HINTS)) return "errand";
   return "note";
 }
@@ -205,6 +208,15 @@ function relatedSuggestions(task, existing, briefing) {
   }
   if (task.category === "errand" && temp != null && Number(temp) >= 32 && !hasText(existing, "drinking water")) {
     out.push(item("related_drink", "related", "buy drinking water"));
+  }
+  if (task.category === "health" && !hasText(existing, "water")) {
+    out.push(item("related_hydrate", "related", "drink water today"));
+  }
+  if (task.category === "school" && !hasText(existing, "revise") && !hasText(existing, "study")) {
+    out.push(item("related_revise", "related", "revise 30 min tonight"));
+  }
+  if (task.category === "work" && !hasText(existing, "agenda")) {
+    out.push(item("related_agenda", "related", "prep agenda"));
   }
   return out.slice(0, 3);
 }

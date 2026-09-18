@@ -286,6 +286,9 @@ h1 {
 .card.bill::before { background: var(--accent-2); }
 .card.medicine::before { background: var(--danger); }
 .card.errand::before { background: var(--accent); }
+.card.health::before { background: #2f9e44; }
+.card.school::before { background: #1971c2; }
+.card.work::before { background: #7048e8; }
 .card.overdue { border-color: var(--danger); }
 .card.done { opacity: 0.5; }
 .card h2 { margin: 0; font-size: 1.08rem; font-weight: 700; padding-inline-start: 0.35rem; }
@@ -304,6 +307,9 @@ h1 {
 }
 .chip.bill { color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 10%, var(--card)); }
 .chip.medicine { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--card)); }
+.chip.health { color: #2f9e44; background: color-mix(in srgb, #2f9e44 12%, var(--card)); }
+.chip.school { color: #1971c2; background: color-mix(in srgb, #1971c2 12%, var(--card)); }
+.chip.work { color: #7048e8; background: color-mix(in srgb, #7048e8 12%, var(--card)); }
 .actions { grid-column: 1 / -1; display: flex; gap: 0.7rem; padding-inline-start: 0.35rem; }
 .actions button {
   font: inherit;
@@ -390,6 +396,31 @@ h1 {
   color: var(--accent);
   padding: 0.4rem 0.75rem;
   cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.shortcuts { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0 0 1.1rem; }
+.shortcuts .k { width: 100%; margin: 0 0 0.1rem; font-size: 0.75rem; color: var(--muted); }
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.shortcut > button { font: inherit; font-size: 0.85rem; border: 0; background: none; color: var(--ink); cursor: pointer; padding: 0.36rem 0.6rem; }
+.shortcut > [data-shortcut-add]:hover { background: var(--ink); color: var(--paper); }
+.shortcut > [data-shortcut-del] { color: var(--muted); padding-inline: 0.25rem 0.5rem; font-size: 0.72rem; }
+.shortcut > [data-shortcut-del]:hover { color: var(--danger); }
+.shortcut-add {
+  font: inherit;
+  font-size: 0.85rem;
+  border: 1px dashed var(--accent);
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.36rem 0.7rem;
   border-radius: var(--radius-sm);
 }
 

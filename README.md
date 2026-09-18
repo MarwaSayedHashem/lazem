@@ -16,7 +16,9 @@ Household admin lives in chat screenshots and “I’ll remember”. That fails 
 - UI: English, Spanish, Chinese, Hindi, Arabic, French, Portuguese, Russian, Bengali, Indonesian, German, Japanese, Turkish, Korean, Italian, Vietnamese, Polish, Dutch, Urdu, Persian — RTL where it belongs, browser language on first visit
 - Cairo briefing: Open-Meteo weather + USD/EGP (15-minute cache, never 500s if a feed dies)
 - Local-first: no account
-- Categories: bill / medicine / errand / note
+- Categories: bill / medicine / health / school / work / errand / note — covering the whole household (kids' school, everyone's health, work deadlines)
+- Customizable shortcuts: add your own one-tap quick-adds (e.g. `gym 7am`, `call mom`) — stored locally
+- Smart related suggestions per category (e.g. an exam suggests a revision block; a health task suggests hydration)
 
 ## Stack
 
