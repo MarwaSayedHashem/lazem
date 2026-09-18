@@ -214,6 +214,23 @@ function classify(text) {
   return "note";
 }
 
+function finishPlace(s) {
+  s = String(s).replace(/\s+(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm|ص|م)?\s*$/i, "");
+  s = s.replace(/[·,\s]+$/, "").replace(/\s+/g, " ").trim();
+  return s ? s.slice(0, 60) : null;
+}
+
+function parsePlace(text) {
+  const raw = String(text || "");
+  let m = raw.match(/@\s*([^\n]{2,60})/);
+  if (m) return finishPlace(m[1]);
+  m = raw.match(/\bat\s+([A-Z][^\n]{2,50})/);
+  if (m) return finishPlace(m[1]);
+  m = raw.match(/(?:^|[\s،,])(?:في|عند)\s+([^\d\n][^\n]{2,50})/);
+  if (m) return finishPlace(m[1]);
+  return null;
+}
+
 function parseTask(text) {
   const raw = (text || "").trim();
   if (!raw) throw new Error("empty");
@@ -237,6 +254,7 @@ function parseTask(text) {
     due,
     time: parseTime(raw.toLowerCase()),
     repeat,
+    place: parsePlace(raw),
   };
 }
 

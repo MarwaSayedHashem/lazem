@@ -912,6 +912,15 @@ footer a { color: var(--accent); }
 .note-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
 .note-flag { display: inline-flex; align-items: center; color: var(--muted); }
 .note-flag .ic { width: 0.9rem; height: 0.9rem; }
+.place-row { display: flex; gap: 0.4rem; }
+.place-row input {
+  flex: 1; min-width: 0; font: inherit; font-size: 0.9rem; padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: var(--radius-sm);
+}
+.place-row input:focus { outline: none; border-color: var(--accent); }
+.place-link { display: inline-flex; align-items: center; gap: 0.22rem; color: var(--accent); font-weight: 600; text-decoration: none; }
+.place-link .ic { width: 0.9rem; height: 0.9rem; }
+.place-link:hover { text-decoration: underline; }
 
 /* ---------- Toast (undo) ---------- */
 .toast {

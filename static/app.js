@@ -939,6 +939,7 @@ function shareableTasks() {
     .filter(matchesSearch)
     .map((tk) => {
       const o = { t: tk.title, r: tk.raw, c: tk.category, d: tk.due || null, tm: tk.time || null, a: tk.amount || null, rp: tk.repeat || null, bk: tk.bill_kind || null };
+      if (tk.place) o.pl = tk.place;
       if (Array.isArray(tk.subtasks) && tk.subtasks.length) o.st = tk.subtasks.map((s) => ({ x: s.text, d: !!s.done }));
       return o;
     });
@@ -993,7 +994,7 @@ function doImport() {
       id: uid(), done: false,
       title: tk.t || tk.r || "Task", raw: tk.r || tk.t || "",
       category: tk.c || "note", due: tk.d || null, time: tk.tm || null,
-      amount: tk.a || null, repeat: tk.rp || null, bill_kind: tk.bk || null,
+      amount: tk.a || null, repeat: tk.rp || null, bill_kind: tk.bk || null, place: tk.pl || null,
     };
     if (Array.isArray(tk.st)) task.subtasks = tk.st.map((s) => ({ id: uid(), text: String(s.x || "").slice(0, 80), done: !!s.d }));
     state.tasks.unshift(task);
@@ -1134,6 +1135,7 @@ function parseICS(text) {
     const val = line.slice(idx + 1);
     if (key === "SUMMARY") cur.summary = icsUnescape(val);
     else if (key === "DESCRIPTION") cur.description = icsUnescape(val);
+    else if (key === "LOCATION") cur.location = icsUnescape(val);
     else if (key === "DTSTART") cur.dtstart = val.trim();
   }
   return events;
@@ -1145,7 +1147,7 @@ function icsToShareItem(ev) {
   const d = `${dm[1]}-${dm[2]}-${dm[3]}`;
   const tm = dm[4] ? `${dm[4]}:${dm[5]}` : null;
   const title = (ev.summary || "Event").slice(0, 80);
-  return { t: title, r: ev.summary || title, c: classify(title), d, tm, a: parseAmount(ev.summary || "") || null };
+  return { t: title, r: ev.summary || title, c: classify(title), d, tm, a: parseAmount(ev.summary || "") || null, pl: ev.location || null };
 }
 
 function seedIfEmpty() {
@@ -1264,6 +1266,7 @@ function cardHTML(task) {
     bits.push(`<span class="sub-progress">${icon("listcheck")} ${subDone}/${subs.length}<span class="bar"><span style="width:${pct}%"></span></span></span>`);
   }
   if (task.note && task.note.trim()) bits.push(`<span class="note-flag" title="note">${icon("note")}</span>`);
+  if (task.place) bits.push(`<a class="place-link" href="${mapsUrl(task.place)}" target="_blank" rel="noopener">${icon("mappin")} ${escapeHtml(task.place)}</a>`);
   const chipHtml = `<span class="chip">${t(task.category)}</span>`;
   const metaInner = chipHtml + bits.map((b) => `<span class="dot">·</span>${b}`).join("");
 
@@ -1329,11 +1332,22 @@ function detailsHTML(task, subs) {
       </div>
     </div>
     <div>
+      <p class="det-h">${icon("mappin")} ${t("place")}</p>
+      <div class="place-row">
+        <input class="place-input" maxlength="80" value="${escapeHtml(task.place || "")}" placeholder="${escapeHtml(t("placePlaceholder"))}" />
+        <button type="button" class="chipbtn" data-act="map">${icon("mappin")} ${t("openMaps")}</button>
+      </div>
+    </div>
+    <div>
       <p class="det-h">${icon("note")} ${t("noteField")}</p>
       <textarea class="note-input" maxlength="500" placeholder="${escapeHtml(t("notePlaceholder"))}">${escapeHtml(task.note || "")}</textarea>
     </div>
     ${photoBlock}
   </div>`;
+}
+
+function mapsUrl(place) {
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(place);
 }
 
 function escapeHtml(s) {
@@ -1411,15 +1425,15 @@ document.getElementById("toastUndo").addEventListener("click", () => {
 
 /* Save note text as it's typed (no re-render, keeps focus) */
 document.addEventListener("input", (e) => {
-  const ta = e.target.closest && e.target.closest(".note-input");
-  if (!ta) return;
-  const card = ta.closest("[data-id]");
+  const el = e.target.closest && e.target.closest(".note-input, .place-input");
+  if (!el) return;
+  const card = el.closest("[data-id]");
   if (!card) return;
   const task = state.tasks.find((x) => x.id === card.dataset.id);
-  if (task) {
-    task.note = ta.value;
-    save();
-  }
+  if (!task) return;
+  if (el.classList.contains("note-input")) task.note = el.value;
+  else task.place = el.value;
+  save();
 });
 
 /* Install-to-home-screen prompt */
@@ -1605,6 +1619,15 @@ document.body.addEventListener("click", (e) => {
   }
   if (act === "photo-view") {
     openLightbox(id);
+    return;
+  }
+  if (act === "map") {
+    const inp = card.querySelector(".place-input");
+    const place = (inp ? inp.value : task.place || "").trim();
+    if (!place) return;
+    task.place = place;
+    save();
+    window.open(mapsUrl(place), "_blank", "noopener");
     return;
   }
   if (act === "subtask-add") {
