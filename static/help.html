@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="classic">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to use Lazem</title>
+  <meta name="description" content="A short guide to every feature in Lazem." />
+  <meta name="theme-color" content="#0f5c57" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .guide { max-width: 44rem; margin: 0 auto; padding: 1.6rem 1.15rem 4rem; }
+    .back { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent); font-weight: 600; text-decoration: none; margin-bottom: 1.2rem; }
+    .back:hover { text-decoration: underline; }
+    .guide h1 { font-family: var(--display); font-size: clamp(2rem, 7vw, 2.6rem); font-weight: 600; letter-spacing: -0.03em; margin: 0 0 0.4rem; }
+    .guide .lead { color: var(--muted); font-size: 1.05rem; line-height: 1.6; margin: 0 0 1.6rem; max-width: 34rem; }
+    .g-sec {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow-sm); padding: 1.1rem 1.2rem 1.2rem; margin: 0 0 1rem;
+    }
+    .g-sec h2 { font-family: var(--display); font-size: 1.3rem; font-weight: 600; margin: 0 0 0.2rem; display: flex; align-items: center; gap: 0.55rem; }
+    .g-sec h2 .emoji { font-size: 1.15rem; }
+    .g-sec p { line-height: 1.6; margin: 0.5rem 0; }
+    .g-sec ul { margin: 0.5rem 0 0; padding-inline-start: 1.2rem; }
+    .g-sec li { margin: 0.45rem 0; line-height: 1.55; }
+    .g-sec b { font-weight: 700; }
+    .ex {
+      display: inline-block; font-family: "IBM Plex Sans", monospace; font-size: 0.9em;
+      background: color-mix(in srgb, var(--accent) 10%, var(--card)); color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+      padding: 0.1rem 0.45rem; border-radius: 7px; font-weight: 600;
+    }
+    .tip { margin-top: 0.7rem; font-size: 0.9rem; color: var(--muted); border-inline-start: 3px solid var(--accent); padding-inline-start: 0.7rem; line-height: 1.55; }
+    .guide footer { margin-top: 2rem; color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+    .guide footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="guide">
+    <a class="back" href="./">← Back to Lazem</a>
+    <h1>How to use Lazem</h1>
+    <p class="lead">Lazem turns a quick note into an organised task — bills, medicine, appointments, errands, school and work. Everything stays on your phone. No account, no sign-up.</p>
+
+    <section class="g-sec">
+      <h2><span class="emoji">✍️</span> Adding a task</h2>
+      <p>Type naturally in the box at the top and press <b>Parse</b>. Lazem reads the date, time, amount and place for you.</p>
+      <ul>
+        <li>A bill: <span class="ex">electricity 5 Oct 850 EGP</span></li>
+        <li>Medicine with a time: <span class="ex">blood pressure medicine 9pm</span></li>
+        <li>An errand: <span class="ex">buy milk and bread</span></li>
+        <li>An appointment with a place: <span class="ex">dentist 4pm @Nasr City</span></li>
+      </ul>
+      <p class="tip">It understands 20 languages, including Arabic — e.g. <span class="ex">كهربا 5 أكتوبر 850</span>. You can also tap the 🎤 mic to speak instead of typing.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🏷️</span> Categories</h2>
+      <p>Every task is sorted automatically into one of: <b>Bills, Medication, Health, School, Work, Errands,</b> or <b>Note</b>. Each has its own colour and icon so you can scan the list at a glance.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">☀️</span> Your "Today" card</h2>
+      <p>At the top you'll see a greeting, the date and Cairo time, plus quick stats: the <b>weather</b>, the <b>US dollar rate</b>, your <b>focus</b> for today (how many of today's tasks are done), and your <b>streak</b> of active days.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">✅</span> Working with a task</h2>
+      <p>On each task card you can:</p>
+      <ul>
+        <li><b>Done</b> — mark it finished (undo any time from the toast that pops up).</li>
+        <li><b>Repeat</b> — make it recur <b>daily / weekly / monthly</b>. When you finish it, the next one appears automatically.</li>
+        <li><b>Remove</b> — delete it (with an <b>Undo</b> option).</li>
+        <li><b>★ Star</b> — pin an important task to the top.</li>
+        <li><b>⌄ Arrow</b> — open more details (below).</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">📋</span> Task details (the ⌄ arrow)</h2>
+      <ul>
+        <li><b>Reschedule</b> — move it to Today, Tomorrow, or Next week in one tap; or add it to your calendar.</li>
+        <li><b>Checklist</b> — break a task into steps (great for a shopping list); progress shows on the card.</li>
+        <li><b>Location</b> — type a place and tap <b>Open in Maps</b>; a 📍 pin also appears on the card. Tap it for directions.</li>
+        <li><b>Note</b> — jot anything (account number, doctor's name…).</li>
+        <li><b>Photo</b> — attach a picture of a bill or receipt (stored only on your phone).</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🔎</span> Finding tasks</h2>
+      <ul>
+        <li><b>Search</b> — find any task by typing.</li>
+        <li><b>Week strip</b> — tap a day to see what's due that day (the badge shows how many).</li>
+        <li><b>Filters</b> — tap Bills, Medication, Health, etc. to show one category.</li>
+        <li><b>Sort</b> — order the list by due date, amount, or A–Z.</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🔔</span> Reminders</h2>
+      <p>Open the <b>☰ menu → Reminders → Enable reminders</b>. You'll get a notification when a dose or bill is due, and you can choose to be reminded <b>1–3 days before</b>. Reminders work while Lazem is open in the background.</p>
+      <p class="tip">Want a bank/installment SMS to become a reminder by itself? See <b>Auto-add from SMS</b> below.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">💳</span> Money: bills, installments &amp; budget</h2>
+      <ul>
+        <li><b>Installment plans</b> — ☰ menu → <b>Add installment plan</b>. Pick ValU, Souhoola, Halan, Aman, Sympl, a credit card or your own; enter the monthly amount, number of months and first due date. Lazem creates a reminder that counts down "installment 3 of 12" and stops when it's paid off.</li>
+        <li><b>Budget</b> — a card under your list shows this month's total spending, how much is paid, a breakdown by category, and what's due in the next 7 and 30 days.</li>
+        <li><b>Higher-than-usual alert</b> — if a bill is much bigger than your usual amount, Lazem flags it so you can check for an error.</li>
+        <li><b>Currency converter</b> — in the ☰ menu, convert USD ⇄ EGP using the live rate.</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">📥</span> Getting things in automatically</h2>
+      <ul>
+        <li><b>Paste from SMS</b> — ☰ menu → paste a bill/installment message; Lazem pulls out the amount and date.</li>
+        <li><b>Auto-add from SMS</b> — ☰ menu shows a link + steps to set up your phone (MacroDroid on Android, Shortcuts on iPhone) so that installment texts turn into reminders by themselves.</li>
+        <li><b>Import calendar (.ics)</b> — bring in assignments/events from Google Classroom, Canvas, Moodle or any calendar file; each becomes a task with its due date (and place, if the event has one).</li>
+      </ul>
+      <p class="tip">Lazem can't read your text inbox directly (no app on the web can) — the options above are the safe, private ways to hand a message to it.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🔗</span> Sharing &amp; backup</h2>
+      <ul>
+        <li><b>Share a list</b> — the <b>Share</b> button packs the current list into a link you can send (e.g. hand the grocery list to family on WhatsApp). They open it and tap to import.</li>
+        <li><b>Backup &amp; restore</b> — ☰ menu → export your tasks to a file, and restore them on another phone. Still no account.</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">📊</span> Insights</h2>
+      <p>At the bottom, tap <b>Insights</b> for an activity heatmap (the days you got things done), a breakdown of your open tasks by category, and your streak.</p>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🎨</span> Make it yours</h2>
+      <ul>
+        <li><b>Themes</b> — ☰ menu → choose Classic, Dark, Rosé, or Simple.</li>
+        <li><b>Language</b> — pick from 20 languages; the app flips to right-to-left for Arabic, Urdu and Persian.</li>
+        <li><b>Install it</b> — add Lazem to your home screen so it opens like a normal app (Android: "Install app" in the menu, or your browser's Add-to-Home-Screen; iPhone: Share → Add to Home Screen).</li>
+      </ul>
+    </section>
+
+    <section class="g-sec">
+      <h2><span class="emoji">🔒</span> Your privacy</h2>
+      <p>Lazem is <b>local-first</b>: your tasks live only in your browser on your device. There's no account and nothing is uploaded. Weather and the dollar rate are the only things fetched, and photos stay on your phone.</p>
+    </section>
+
+    <footer>
+      <a class="back" href="./">← Back to Lazem</a>
+      <p>Lazem — Marwa Hashem, Cairo. · <a href="privacy.html">Privacy</a></p>
+    </footer>
+  </div>
+  <script>
+    try {
+      var th = localStorage.getItem("lazem.theme.v1");
+      if (["classic", "dark", "girly", "simple"].indexOf(th) >= 0) document.documentElement.dataset.theme = th;
+    } catch (e) {}
+  </script>
+</body>
+</html>
