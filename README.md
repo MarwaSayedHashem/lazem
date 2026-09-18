@@ -40,6 +40,8 @@ Open http://127.0.0.1:8766
 
 Live: https://marwasayedhashem.github.io/lazem/
 
+On a phone (free): Android Chrome → Install app. iPhone Safari → Add to Home Screen. Store listings need Google’s $25 / Apple’s $99 — see [STORE.md](STORE.md).
+
 ```bash
 pytest
 ```

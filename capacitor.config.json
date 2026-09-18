@@ -1,0 +1,8 @@
+{
+  "appId": "ae.lazem.app",
+  "appName": "Lazem",
+  "webDir": "static",
+  "server": {
+    "androidScheme": "https"
+  }
+}

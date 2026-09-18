@@ -1,0 +1,16 @@
+{
+  "name": "lazem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cairo household inbox — bills, meds, errands",
+  "scripts": {
+    "sync": "npx cap sync",
+    "android": "npx cap open android",
+    "ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/core": "^8.5.2"
+  }
+}

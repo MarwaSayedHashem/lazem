@@ -1,9 +1,35 @@
 {
+  "id": "https://marwasayedhashem.github.io/lazem/",
   "name": "لازم Lazem",
-  "short_name": "لازم",
+  "short_name": "Lazem",
+  "description": "Bills, meds, and errands for a Cairo day. Stays on your phone. No account.",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f4efe6",
+  "orientation": "portrait",
+  "background_color": "#f3eee4",
   "theme_color": "#0f5c57",
-  "lang": "ar"
+  "lang": "ar",
+  "dir": "auto",
+  "categories": ["productivity", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

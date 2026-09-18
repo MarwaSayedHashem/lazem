@@ -549,3 +549,6 @@ applyLang();
 loadBriefing();
 render();
 refreshCoach();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
