@@ -163,9 +163,11 @@ body {
 .ic { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -0.22em; flex: none; }
 
 /* ---------- Header ---------- */
-.top { display: flex; gap: 0.9rem; align-items: flex-start; }
-[dir="rtl"] .top { flex-direction: row-reverse; }
+/* Force the app-bar to lay out left-to-right so the menu button is always
+   physically on the left, even in Arabic/RTL. Brand text keeps its own dir. */
+.top { display: flex; gap: 0.9rem; align-items: flex-start; direction: ltr; }
 .brand { flex: 1; min-width: 0; }
+[dir="rtl"] .brand { direction: rtl; text-align: right; }
 .eyebrow {
   margin: 0; color: var(--accent); font-size: 0.74rem; font-weight: 600;
   letter-spacing: 0.14em; text-transform: uppercase;
