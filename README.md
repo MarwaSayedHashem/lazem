@@ -54,7 +54,7 @@ Live app: https://marwasayedhashem.github.io/lazem/
 
 The UI is local-first: each visitor’s inbox lives in **their** browser. GitHub Pages serves the static app; weather and USD/EGP are fetched in the browser. The FastAPI server in this repo is for local runs, tests, and Docker.
 
-Optional Python host (Render/Railway/Fly): start command in the Procfile, health check `/api/health`.
+Render blueprint (`render.yaml`) is a **free static site** from `./static`. Python web services on new Render accounts are paid.
 
 ## API
 
