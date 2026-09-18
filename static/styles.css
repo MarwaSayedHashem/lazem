@@ -258,7 +258,8 @@ body.menu-open { overflow: hidden; }
 .drawer-h .ic { width: 1rem; height: 1rem; }
 .drawer-panel .themes { display: flex; gap: 0.55rem; }
 .drawer-panel .lang { max-width: 100%; width: 100%; }
-.data-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+/* Action groups: compact 2-column tiles instead of a long list */
+.data-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .data-btn {
   display: inline-flex; align-items: center; gap: 0.5rem; justify-content: flex-start;
   font: inherit; font-weight: 600; font-size: 0.9rem;
@@ -266,6 +267,12 @@ body.menu-open { overflow: hidden; }
   padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; text-align: start;
   transition: border-color 180ms ease, background-color 180ms ease, transform 140ms ease;
 }
+/* tiles inside a group stack the icon on top for a tidy grid */
+.data-actions .data-btn {
+  flex-direction: column; align-items: center; text-align: center; gap: 0.4rem;
+  padding: 0.85rem 0.5rem; font-size: 0.82rem; line-height: 1.2;
+}
+.data-actions .data-btn .ic { width: 1.35rem; height: 1.35rem; }
 .data-btn .ic { color: var(--accent); }
 .data-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
 [data-theme="simple"] .data-btn:hover { transform: none; }
