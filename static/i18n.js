@@ -29,7 +29,8 @@ const WMO = {
 const I18N = {
   en: {
     eyebrow: "Cairo · local-first",
-    tag: "Unstructured notes become typed work: bill, medication, errand.",
+    tag: "The little things you mustn't forget — bills, meds, errands.",
+    byline: "by Moro",
     briefLoading: "Fetching Cairo weather and USD/EGP…",
     noteLabel: "Add a task",
     add: "Parse",
@@ -395,7 +396,8 @@ const I18N = {
   },
   ar: {
     eyebrow: "القاهرة · يبقى على جهازك",
-    tag: "سطر غير منظم يتحول إلى عمل مصنّف: فاتورة، دواء، مشوار.",
+    tag: "الحاجات الصغيرة اللي لازم متتنساش — فواتير، دوا، مشاوير.",
+    byline: "by Moro",
     briefLoading: "نجلب طقس القاهرة وسعر الدولار…",
     noteLabel: "أضيفي مهمة",
     add: "حلّل",

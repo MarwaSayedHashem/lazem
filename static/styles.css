@@ -192,18 +192,22 @@ h1 {
 [data-theme="girly"] h1 { font-weight: 500; font-style: italic; }
 [data-theme="simple"] h1 { font-weight: 500; }
 .mark {
-  width: 0.7rem; height: 0.7rem; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent);
-  flex: none; animation: breathe 6s ease-in-out infinite;
+  width: 1.75rem; height: 1.75rem; border-radius: 0.55rem;
+  background: var(--accent); color: var(--btn-fg);
+  display: inline-grid; place-items: center; flex: none;
+  font-family: var(--display); font-weight: 600; font-size: 1.2rem; line-height: 1;
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--accent) 75%, transparent);
 }
-[data-theme="girly"] .mark { border-radius: 50%; transform: none; }
-[data-theme="simple"] .mark { box-shadow: none; width: 0.5rem; height: 0.5rem; animation: none; }
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent); }
-  50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 8%, transparent); }
+.mark::after { content: "L"; }
+[data-theme="girly"] .mark { border-radius: 0.55rem; }
+[data-theme="simple"] .mark { box-shadow: none; border-radius: 6px; }
+.tag { margin: 0.5rem 0 0; color: var(--muted); max-width: 26rem; line-height: 1.55; font-size: 0.96rem; }
+.byline {
+  margin: 0.45rem 0 0; font-family: var(--display); font-style: italic; font-weight: 500;
+  color: var(--accent); font-size: 1rem; display: inline-flex; align-items: center; gap: 0.35rem;
 }
-.tag { margin: 0.55rem 0 0; color: var(--muted); max-width: 26rem; line-height: 1.55; font-size: 0.96rem; }
+.byline::before { content: ""; width: 1.1rem; height: 1px; background: currentColor; opacity: 0.5; }
+[data-theme="simple"] .byline { font-style: normal; }
 
 .menu-btn {
   flex: none; width: 46px; height: 46px;
