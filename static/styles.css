@@ -499,29 +499,31 @@ body.menu-open { overflow: hidden; }
 
 /* ---------- Week agenda strip ---------- */
 .agenda {
-  display: flex; gap: 0.4rem; margin-bottom: 0.9rem; overflow-x: auto; padding-bottom: 0.25rem;
+  display: flex; gap: 0.4rem; margin: 0 0 0.85rem; overflow-x: auto;
+  padding: 9px 2px 4px; /* top room so the count badge is never clipped */
   scrollbar-width: none; -ms-overflow-style: none;
 }
 .agenda::-webkit-scrollbar { display: none; }
 .agenda .day {
-  flex: none; min-width: 3.1rem; font: inherit; cursor: pointer; position: relative;
+  flex: none; min-width: 2.9rem; font: inherit; cursor: pointer; position: relative;
   border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
-  border-radius: var(--radius-sm); padding: 0.5rem 0.55rem; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
-  box-shadow: var(--shadow-sm); transition: border-color 160ms ease, transform 140ms ease, background-color 160ms ease;
+  border-radius: var(--radius-sm); padding: 0.4rem 0.5rem 0.45rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.05rem;
+  transition: border-color 160ms ease, transform 140ms ease, background-color 160ms ease;
 }
 .agenda .day:hover { border-color: var(--accent); transform: translateY(-1px); }
 [data-theme="simple"] .agenda .day:hover { transform: none; }
-.agenda .day .wd { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
-.agenda .day .dn { font-family: var(--display); font-size: 1.15rem; font-weight: 600; line-height: 1; }
+.agenda .day .wd { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; }
+.agenda .day .dn { font-family: var(--display); font-size: 1.05rem; font-weight: 600; line-height: 1.15; }
 .agenda .day .dc {
-  position: absolute; top: -6px; inset-inline-end: -6px; min-width: 18px; height: 18px; padding: 0 4px;
+  position: absolute; top: -5px; inset-inline-end: -5px; min-width: 17px; height: 17px; padding: 0 4px;
   border-radius: 99px; background: var(--accent); color: var(--btn-fg);
-  font-size: 0.68rem; font-weight: 700; display: grid; place-items: center; line-height: 1;
+  font-size: 0.64rem; font-weight: 700; display: grid; place-items: center; line-height: 1;
+  box-shadow: 0 0 0 2px var(--paper); /* halo so it reads as a badge */
 }
 .agenda .day.on { background: var(--accent); border-color: var(--accent); }
 .agenda .day.on .wd, .agenda .day.on .dn { color: var(--btn-fg); }
-.agenda .day.on .dc { background: var(--btn-fg); color: var(--accent); }
+.agenda .day.on .dc { background: var(--btn-fg); color: var(--accent); box-shadow: 0 0 0 2px var(--paper); }
 
 /* ---------- Filters ---------- */
 .filters {
@@ -533,11 +535,10 @@ body.menu-open { overflow: hidden; }
 [dir="rtl"] .filters { -webkit-mask-image: linear-gradient(270deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(270deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
 .filters::-webkit-scrollbar { display: none; }
 .filters button {
-  flex: none; font: inherit; font-size: 0.86rem; font-weight: 600;
+  flex: none; font: inherit; font-size: 0.83rem; font-weight: 600;
   border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
-  padding: 0.46rem 0.9rem; cursor: pointer; border-radius: 999px;
-  display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
-  box-shadow: var(--shadow-sm);
+  padding: 0.42rem 0.85rem; cursor: pointer; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 0.38rem; white-space: nowrap;
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, transform 140ms ease;
 }
 [data-theme="simple"] .filters button { border-radius: var(--radius-xs); }
