@@ -22,6 +22,7 @@ const FILTER_LABEL = {
 };
 
 state.expanded = new Set();
+state.dateFilter = null;
 
 /* ---------- Photo storage (IndexedDB) ---------- */
 const PHOTO_DB = "lazem-photos";
@@ -706,6 +707,54 @@ function renderInsights() {
     `<div class="ins-block"><p class="ins-h">${t("insBreakdown")}</p>${donutBlock}</div>`;
 }
 
+/* ---------- Week agenda strip ---------- */
+function renderAgenda() {
+  const root = document.getElementById("agenda");
+  if (!root) return;
+  const loc = state.lang === "ar" ? "ar-EG" : state.lang;
+  const today = todayISO();
+  const open = state.tasks.filter((x) => !x.done);
+  let html = "";
+  for (let i = 0; i < 7; i++) {
+    const d = plusDays(today, i);
+    const count = open.filter((x) => x.due === d).length;
+    const sel = state.dateFilter === d;
+    let wd, dn;
+    try {
+      const dt = new Date(d + "T00:00:00");
+      wd = i === 0 ? t("resToday") : dt.toLocaleDateString(loc, { weekday: "short" });
+      dn = dt.toLocaleDateString(loc, { day: "numeric" });
+    } catch {
+      wd = d;
+      dn = d.slice(8);
+    }
+    html += `<button type="button" class="day${sel ? " on" : ""}" data-day="${d}">` +
+      `<span class="wd">${escapeHtml(wd)}</span><span class="dn">${escapeHtml(dn)}</span>` +
+      `${count ? `<span class="dc">${count}</span>` : ""}</button>`;
+  }
+  root.innerHTML = html;
+}
+
+/* ---------- Undo toast ---------- */
+let toastTimer = null;
+let undoSnapshot = null;
+function showToast(msg, snapshot) {
+  undoSnapshot = snapshot || null;
+  document.getElementById("toastMsg").textContent = msg;
+  const toast = document.getElementById("toast");
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add("show"));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 5000);
+}
+function hideToast() {
+  const toast = document.getElementById("toast");
+  toast.classList.remove("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 250);
+  undoSnapshot = null;
+}
+
 function seedIfEmpty() {
   if (state.tasks.length) return;
   state.tasks = [
@@ -721,6 +770,7 @@ function isOverdue(task) {
 }
 
 function visible(task) {
+  if (state.dateFilter) return !task.done && task.due === state.dateFilter;
   if (state.filter === "done") return task.done;
   if (task.done) return false;
   if (state.filter === "open") return true;
@@ -749,12 +799,17 @@ function render() {
   const list = document.getElementById("list");
   const overdueBox = document.getElementById("overdue");
   const head = document.getElementById("listHead");
+  const loc = state.lang === "ar" ? "ar-EG" : state.lang;
+  renderAgenda();
   let items = state.tasks.filter(visible).filter(matchesSearch);
   items = items.slice().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+
+  const clearBtn = document.getElementById("clearDoneBtn");
 
   if (!items.length) {
     overdueBox.innerHTML = "";
     head.hidden = true;
+    if (clearBtn) clearBtn.hidden = true;
     list.innerHTML = emptyBox(state.search ? t("noSearch") : t("empty"));
     renderFocus();
     renderBudget();
@@ -762,8 +817,18 @@ function render() {
   }
 
   head.hidden = false;
-  document.getElementById("listTitle").textContent = t(FILTER_LABEL[state.filter] || "filterOpen");
+  const titleEl = document.getElementById("listTitle");
+  if (state.dateFilter) {
+    try {
+      titleEl.textContent = new Date(state.dateFilter + "T00:00:00").toLocaleDateString(loc, { weekday: "long", day: "numeric", month: "long" });
+    } catch {
+      titleEl.textContent = state.dateFilter;
+    }
+  } else {
+    titleEl.textContent = t(FILTER_LABEL[state.filter] || "filterOpen");
+  }
   document.getElementById("listCount").textContent = items.length;
+  if (clearBtn) clearBtn.hidden = !(state.filter === "done" && !state.dateFilter && items.length);
 
   const overdue = items.filter(isOverdue);
   const rest = items.filter((x) => !isOverdue(x));
@@ -798,6 +863,7 @@ function cardHTML(task) {
     const pct = Math.round((subDone / subs.length) * 100);
     bits.push(`<span class="sub-progress">${icon("listcheck")} ${subDone}/${subs.length}<span class="bar"><span style="width:${pct}%"></span></span></span>`);
   }
+  if (task.note && task.note.trim()) bits.push(`<span class="note-flag" title="note">${icon("note")}</span>`);
   const metaInner = bits.length ? bits.join('<span class="dot">·</span>') : escapeHtml(task.raw || "");
 
   const action = task.done ? t("undo") : t("done");
@@ -861,6 +927,10 @@ function detailsHTML(task, subs) {
         </div>
       </div>
     </div>
+    <div>
+      <p class="det-h">${icon("note")} ${t("noteField")}</p>
+      <textarea class="note-input" maxlength="500" placeholder="${escapeHtml(t("notePlaceholder"))}">${escapeHtml(task.note || "")}</textarea>
+    </div>
     ${photoBlock}
   </div>`;
 }
@@ -901,8 +971,74 @@ document.getElementById("filters").addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-filter]");
   if (!btn) return;
   state.filter = btn.dataset.filter;
+  state.dateFilter = null;
   document.querySelectorAll("#filters button").forEach((b) => b.classList.toggle("on", b === btn));
   render();
+});
+
+document.getElementById("agenda").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-day]");
+  if (!btn) return;
+  state.dateFilter = state.dateFilter === btn.dataset.day ? null : btn.dataset.day;
+  render();
+});
+
+document.getElementById("clearDoneBtn").addEventListener("click", () => {
+  const before = state.tasks.length;
+  const snap = JSON.stringify(state.tasks);
+  state.tasks = state.tasks.filter((x) => !x.done);
+  if (state.tasks.length !== before) {
+    save();
+    render();
+    refreshCoach();
+    showToast(t("clearedDone"), snap);
+  }
+});
+
+document.getElementById("toastUndo").addEventListener("click", () => {
+  if (undoSnapshot) {
+    try { state.tasks = JSON.parse(undoSnapshot); } catch {}
+    save();
+    render();
+    refreshCoach();
+    scheduleReminders();
+  }
+  hideToast();
+});
+
+/* Save note text as it's typed (no re-render, keeps focus) */
+document.addEventListener("input", (e) => {
+  const ta = e.target.closest && e.target.closest(".note-input");
+  if (!ta) return;
+  const card = ta.closest("[data-id]");
+  if (!card) return;
+  const task = state.tasks.find((x) => x.id === card.dataset.id);
+  if (task) {
+    task.note = ta.value;
+    save();
+  }
+});
+
+/* Install-to-home-screen prompt */
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const b = document.getElementById("installBtn");
+  if (b) b.hidden = false;
+});
+window.addEventListener("appinstalled", () => {
+  deferredPrompt = null;
+  const b = document.getElementById("installBtn");
+  if (b) b.hidden = true;
+});
+document.getElementById("installBtn").addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try { await deferredPrompt.userChoice; } catch {}
+  deferredPrompt = null;
+  const b = document.getElementById("installBtn");
+  if (b) b.hidden = true;
 });
 
 /* Search */
@@ -946,6 +1082,8 @@ document.body.addEventListener("click", (e) => {
     return;
   }
 
+  const removeSnapshot = act === "remove" ? JSON.stringify(state.tasks) : null;
+
   if (act === "done") {
     task.done = true;
     task.doneAt = todayISO();
@@ -973,13 +1111,13 @@ document.body.addEventListener("click", (e) => {
     photoDel(id);
     task.photo = false;
   } else if (act === "remove") {
-    if (task.photo) photoDel(id);
     state.tasks = state.tasks.filter((x) => x.id !== id);
   }
   save();
   render();
   refreshCoach();
   scheduleReminders();
+  if (act === "remove") showToast(t("removed"), removeSnapshot);
 });
 
 /* Add a checklist item with Enter */

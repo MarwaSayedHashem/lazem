@@ -57,6 +57,7 @@
           <button type="button" class="data-btn" id="exportBtn"><i data-ic="download"></i><span data-i18n="exportData">Export a backup</span></button>
           <button type="button" class="data-btn" id="importBtn"><i data-ic="upload"></i><span data-i18n="importData">Restore from backup</span></button>
           <input type="file" id="importFile" accept="application/json,.json" hidden />
+          <button type="button" class="data-btn" id="installBtn" hidden><i data-ic="download"></i><span data-i18n="installApp">Install app</span></button>
         </div>
 
         <p class="drawer-foot"><i data-ic="shield"></i><span data-i18n="footer">No account. Tasks stay in this browser. Marwa Hashem — Technical Lead, Cairo.</span></p>
@@ -101,6 +102,8 @@
       <button type="button" class="clear-search" id="clearSearch" aria-label="Clear"><i data-ic="close"></i></button>
     </div>
 
+    <nav class="agenda" id="agenda" aria-label="Next seven days"></nav>
+
     <nav class="filters" id="filters" aria-label="Filter tasks">
       <button type="button" data-filter="open" class="on"><i data-ic="inbox"></i><span data-i18n="filterOpen">Inbox</span></button>
       <button type="button" data-filter="bill"><i data-ic="bill"></i><span data-i18n="filterBill">Bills</span></button>
@@ -113,13 +116,23 @@
     </nav>
 
     <section id="overdue" class="stack"></section>
-    <div class="list-head" id="listHead" hidden><h2 id="listTitle"></h2><span class="count" id="listCount"></span></div>
+    <div class="list-head" id="listHead" hidden>
+      <h2 id="listTitle"></h2>
+      <span class="lh-right">
+        <span class="count" id="listCount"></span>
+        <button type="button" class="chipbtn clear-done" id="clearDoneBtn" hidden><i data-ic="trash"></i><span data-i18n="clearCompleted">Clear completed</span></button>
+      </span>
+    </div>
     <section id="list" class="stack"></section>
 
     <footer>
       <p data-i18n="footer">No account. Tasks are stored in this browser only. Marwa Hashem — Technical Lead, Cairo.</p>
       <p><a href="privacy.html" data-i18n="privacy">Privacy</a></p>
     </footer>
+  </div>
+  <div class="toast" id="toast" hidden>
+    <span id="toastMsg"></span>
+    <button type="button" id="toastUndo" data-i18n="undo">Undo</button>
   </div>
   <input type="file" id="cardPhotoInput" accept="image/*" capture="environment" hidden />
   <div class="lightbox" id="lightbox" hidden>
