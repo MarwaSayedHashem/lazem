@@ -29,7 +29,7 @@ const WMO = {
 const I18N = {
   en: {
     eyebrow: "Cairo · local-first",
-    tag: "The little things you mustn't forget — bills, meds, errands.",
+    tag: "The little things you mustn't forget.",
     byline: "by Moro",
     briefLoading: "Fetching Cairo weather and USD/EGP…",
     noteLabel: "Add a task",
@@ -396,7 +396,7 @@ const I18N = {
   },
   ar: {
     eyebrow: "القاهرة · يبقى على جهازك",
-    tag: "الحاجات الصغيرة اللي لازم متتنساش — فواتير، دوا، مشاوير.",
+    tag: "الحاجات الصغيرة اللي لازم متتنساش.",
     byline: "by Moro",
     briefLoading: "نجلب طقس القاهرة وسعر الدولار…",
     noteLabel: "أضيفي مهمة",
