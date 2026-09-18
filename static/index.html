@@ -48,6 +48,10 @@
         <label class="sr" for="lang">Language</label>
         <select id="lang" class="lang" aria-label="Language"></select>
 
+        <p class="drawer-h"><i data-ic="bell"></i><span data-i18n="menuReminders">Reminders</span></p>
+        <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Enable reminders</span></button>
+        <p class="remind-note" id="remindNote" data-i18n="remindNote">Get a notification when a dose or bill is due. Works while Lazem is open in the background.</p>
+
         <p class="drawer-h"><i data-ic="shield"></i><span data-i18n="menuData">Your data</span></p>
         <div class="data-actions">
           <button type="button" class="data-btn" id="exportBtn"><i data-ic="download"></i><span data-i18n="exportData">Export a backup</span></button>
@@ -63,6 +67,7 @@
       <article class="tile" id="tileWeather"><p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p></article>
       <article class="tile" id="tileFx"></article>
       <article class="tile focus" id="tileFocus" hidden></article>
+      <article class="tile budget" id="tileBudget" hidden></article>
       <p class="clock" id="cairoClock"></p>
     </section>
 
@@ -73,6 +78,7 @@
       <label class="sr" for="note" data-i18n="noteLabel">Add a task</label>
       <input id="note" name="note" autocomplete="off" maxlength="240"
              placeholder="electricity 5 Oct 850 EGP" />
+      <button type="button" class="mic-btn" id="micBtn" aria-label="Voice input" hidden><i data-ic="mic"></i></button>
       <button type="submit"><i data-ic="plus"></i><span data-i18n="add">Parse</span></button>
     </form>
     <p class="hint" data-i18n="hint">Examples: electricity 5 Oct 850 EGP · medicine 9pm · buy milk</p>

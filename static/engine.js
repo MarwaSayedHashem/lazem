@@ -140,6 +140,36 @@ function parseDue(text, todayIso) {
   return null;
 }
 
+const REPEAT_WORDS = {
+  monthly: ["monthly", "every month", "each month", "شهري", "شهريا", "كل شهر", "cada mes", "mensuel", "monatlich", "mensile", "毎月", "每月", "매월"],
+  weekly: ["weekly", "every week", "each week", "أسبوعي", "اسبوعي", "كل أسبوع", "cada semana", "hebdomadaire", "wöchentlich", "settimanale", "毎週", "每周", "매주"],
+  daily: ["daily", "every day", "each day", "يومي", "يوميا", "كل يوم", "cada día", "quotidien", "täglich", "giornaliero", "毎日", "每天", "매일"],
+};
+
+function detectRepeat(text) {
+  for (const key of ["monthly", "weekly", "daily"]) {
+    if (containsAny(text, REPEAT_WORDS[key])) return key;
+  }
+  return null;
+}
+
+function addMonthsIso(iso, n) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const base = new Date(Date.UTC(y, m - 1 + n, 1));
+  const yy = base.getUTCFullYear();
+  const mm = base.getUTCMonth() + 1;
+  const day = Math.min(d, lastDayOfMonth(yy, mm));
+  return `${yy}-${String(mm).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function nextDue(iso, repeat) {
+  if (!iso || !repeat) return iso;
+  if (repeat === "daily") return plusDays(iso, 1);
+  if (repeat === "weekly") return plusDays(iso, 7);
+  if (repeat === "monthly") return addMonthsIso(iso, 1);
+  return iso;
+}
+
 function classify(text) {
   if (billKind(text)) return "bill";
   if (containsAny(text, LEX.MED_HINTS)) return "medicine";
@@ -162,6 +192,8 @@ function parseTask(text) {
     const mo = Number(todayIso.slice(5, 7));
     due = `${y}-${String(mo).padStart(2, "0")}-${String(lastDayOfMonth(y, mo)).padStart(2, "0")}`;
   }
+  const repeat = detectRepeat(raw);
+  if (repeat && !due) due = todayIso; // anchor recurring items so they can roll forward
   return {
     title: kind ? LEX.BILL_TITLES[kind] : raw.replace(/\s+/g, " ").slice(0, 80) || "Task",
     raw,
@@ -170,6 +202,7 @@ function parseTask(text) {
     amount: parseAmount(raw),
     due,
     time: parseTime(raw.toLowerCase()),
+    repeat,
   };
 }
 

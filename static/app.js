@@ -93,6 +93,236 @@ function getStreak() {
   return streak;
 }
 
+/* ---------- Recurring tasks ---------- */
+function spawnNext(task) {
+  if (!task.repeat || !task.due) return;
+  const nd = nextDue(task.due, task.repeat);
+  if (!nd || nd === task.due) return;
+  const clone = { ...task, id: uid(), done: false, pinned: false, due: nd };
+  delete clone.doneAt;
+  state.tasks.unshift(clone);
+}
+
+/* ---------- Budget ---------- */
+function fmtNum(n) {
+  try {
+    return Number(Math.round(n)).toLocaleString(state.lang === "ar" ? "ar-EG" : undefined);
+  } catch {
+    return String(Math.round(n));
+  }
+}
+
+function monthLabel() {
+  try {
+    return new Date().toLocaleDateString(state.lang === "ar" ? "ar-EG" : state.lang, { month: "long", timeZone: "Africa/Cairo" });
+  } catch {
+    return new Date().toLocaleDateString("en", { month: "long" });
+  }
+}
+
+function renderBudget() {
+  const tile = document.getElementById("tileBudget");
+  if (!tile) return;
+  const ym = todayISO().slice(0, 7);
+  const withAmt = state.tasks.filter((x) => Number(x.amount) > 0 && x.due && x.due.slice(0, 7) === ym);
+  if (!withAmt.length) {
+    tile.hidden = true;
+    return;
+  }
+  const total = withAmt.reduce((s, x) => s + Number(x.amount), 0);
+  const paid = withAmt.filter((x) => x.done).reduce((s, x) => s + Number(x.amount), 0);
+  const byCat = {};
+  withAmt.forEach((x) => {
+    const c = x.category || "note";
+    byCat[c] = (byCat[c] || 0) + Number(x.amount);
+  });
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const max = Math.max.apply(null, cats.map((c) => c[1]));
+  const rows = cats
+    .map(([cat, amt]) =>
+      `<div class="bud-row ${cat}"><span class="bud-cat"><span class="bud-dot"></span>${t(cat)}</span>` +
+      `<span class="bud-bar"><span style="width:${Math.max(6, Math.round((amt / max) * 100))}%"></span></span>` +
+      `<span class="bud-amt">${fmtNum(amt)}</span></div>`
+    )
+    .join("");
+  tile.hidden = false;
+  tile.innerHTML =
+    `<p class="k">${icon("coins")} ${t("budgetTitle")} · ${monthLabel()}</p>` +
+    `<p class="v">${fmtNum(total)} <span class="bud-egp">EGP</span></p>` +
+    `<p class="s">${sub(t("budgetPaid"), { paid: fmtNum(paid), total: fmtNum(total) })}</p>` +
+    `<div class="bud-rows">${rows}</div>`;
+}
+
+/* ---------- Reminders (local notifications) ---------- */
+const REMIND_STORE = "lazem.reminders.v1";
+const NOTIFIED_STORE = "lazem.notified.v1";
+
+function loadReminders() {
+  try {
+    const r = JSON.parse(localStorage.getItem(REMIND_STORE) || "{}");
+    return { enabled: !!r.enabled };
+  } catch {
+    return { enabled: false };
+  }
+}
+function saveReminders() {
+  localStorage.setItem(REMIND_STORE, JSON.stringify(state.reminders));
+}
+state.reminders = loadReminders();
+
+function remindersSupported() {
+  return typeof Notification !== "undefined";
+}
+function loadNotified() {
+  try {
+    const a = JSON.parse(localStorage.getItem(NOTIFIED_STORE) || "[]");
+    return Array.isArray(a) ? a : [];
+  } catch {
+    return [];
+  }
+}
+function markNotified(key) {
+  const l = loadNotified();
+  if (!l.includes(key)) {
+    l.push(key);
+    if (l.length > 500) l.splice(0, l.length - 500);
+    localStorage.setItem(NOTIFIED_STORE, JSON.stringify(l));
+  }
+}
+function wasNotified(key) {
+  return loadNotified().includes(key);
+}
+function showReminder(task) {
+  const key = `${task.id}:${todayISO()}:${task.time || "due"}`;
+  if (wasNotified(key)) return;
+  markNotified(key);
+  const body = [task.time || "", task.amount ? `${task.amount} EGP` : "", t(task.category)].filter(Boolean).join(" · ");
+  const opts = { body, tag: key, icon: "icons/icon-192.png", badge: "icons/icon-192.png", lang: state.lang };
+  const title = displayTitle(task);
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.showNotification(title, opts))
+        .catch(() => { try { new Notification(title, opts); } catch {} });
+    } else {
+      new Notification(title, opts);
+    }
+  } catch {}
+}
+let reminderTimers = [];
+function scheduleReminders() {
+  reminderTimers.forEach(clearTimeout);
+  reminderTimers = [];
+  if (!state.reminders.enabled || !remindersSupported() || Notification.permission !== "granted") return;
+  const today = todayISO();
+  const now = new Date();
+  state.tasks
+    .filter((x) => !x.done && x.due === today && x.time)
+    .forEach((task) => {
+      const parts = String(task.time).split(":");
+      const h = Number(parts[0]);
+      const m = Number(parts[1] || 0);
+      if (Number.isNaN(h)) return;
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+      const ms = target.getTime() - now.getTime();
+      if (ms > 0 && ms < 26 * 3600 * 1000) {
+        reminderTimers.push(setTimeout(() => showReminder(task), ms));
+      } else if (ms <= 0 && ms > -3600 * 1000) {
+        showReminder(task);
+      }
+    });
+}
+function updateReminderUI() {
+  const btn = document.getElementById("remindBtn");
+  const label = document.getElementById("remindLabel");
+  const note = document.getElementById("remindNote");
+  if (!btn) return;
+  if (!remindersSupported()) {
+    btn.disabled = true;
+    if (label) label.textContent = t("remindUnsupported");
+    return;
+  }
+  const granted = Notification.permission === "granted";
+  const denied = Notification.permission === "denied";
+  const on = state.reminders.enabled && granted;
+  btn.classList.toggle("on", on);
+  if (label) label.textContent = on ? t("remindersOn") : t("enableReminders");
+  if (note) note.textContent = denied ? t("remindDenied") : t("remindNote");
+}
+async function toggleReminders() {
+  if (!remindersSupported()) {
+    updateReminderUI();
+    return;
+  }
+  if (state.reminders.enabled && Notification.permission === "granted") {
+    state.reminders.enabled = false;
+    saveReminders();
+    scheduleReminders();
+    updateReminderUI();
+    return;
+  }
+  let perm = Notification.permission;
+  if (perm !== "granted") {
+    try {
+      perm = await Notification.requestPermission();
+    } catch {
+      perm = Notification.permission;
+    }
+  }
+  if (perm === "granted") {
+    state.reminders.enabled = true;
+    saveReminders();
+    scheduleReminders();
+  }
+  updateReminderUI();
+}
+
+/* ---------- Voice input ---------- */
+function voiceLang(l) {
+  const map = {
+    ar: "ar-EG", en: "en-US", fr: "fr-FR", es: "es-ES", de: "de-DE", it: "it-IT",
+    pt: "pt-BR", ru: "ru-RU", tr: "tr-TR", nl: "nl-NL", pl: "pl-PL", id: "id-ID",
+    hi: "hi-IN", bn: "bn-BD", ja: "ja-JP", ko: "ko-KR", zh: "zh-CN", vi: "vi-VN",
+    ur: "ur-PK", fa: "fa-IR",
+  };
+  return map[l] || "en-US";
+}
+function setupVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById("micBtn");
+  if (!micBtn) return;
+  if (!SR) {
+    micBtn.hidden = true;
+    return;
+  }
+  micBtn.hidden = false;
+  let rec = null;
+  let listening = false;
+  micBtn.addEventListener("click", () => {
+    if (listening) {
+      try { rec && rec.stop(); } catch {}
+      return;
+    }
+    rec = new SR();
+    rec.lang = voiceLang(state.lang);
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onstart = () => { listening = true; micBtn.classList.add("on"); };
+    rec.onend = () => { listening = false; micBtn.classList.remove("on"); };
+    rec.onerror = () => { listening = false; micBtn.classList.remove("on"); };
+    rec.onresult = (e) => {
+      const txt = ((e.results[0] && e.results[0][0] && e.results[0][0].transcript) || "").trim();
+      if (txt) {
+        const input = document.getElementById("note");
+        input.value = txt;
+        input.focus();
+      }
+    };
+    try { rec.start(); } catch {}
+  });
+}
+
 function renderShortcuts() {
   const root = document.getElementById("shortcuts");
   if (!root) return;
@@ -176,6 +406,7 @@ function applyLang() {
   renderShortcuts();
   renderInterview();
   refreshCoach();
+  updateReminderUI();
 }
 
 function todayISO() {
@@ -233,6 +464,7 @@ async function loadBriefing() {
     fxTile.innerHTML = "";
   }
   renderFocus();
+  renderBudget();
 }
 
 function renderFocus() {
@@ -314,6 +546,7 @@ function render() {
     head.hidden = true;
     list.innerHTML = emptyBox(state.search ? t("noSearch") : t("empty"));
     renderFocus();
+    renderBudget();
     return;
   }
 
@@ -326,6 +559,7 @@ function render() {
   overdueBox.innerHTML = overdue.map(cardHTML).join("");
   list.innerHTML = rest.map(cardHTML).join("");
   renderFocus();
+  renderBudget();
 }
 
 function cardHTML(task) {
@@ -341,6 +575,7 @@ function cardHTML(task) {
   if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(task.due)}</span>`);
   if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
   if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
+  if (task.repeat) bits.push(`<span class="repeat-flag">${icon("repeat")} ${t("repeat_" + task.repeat)}</span>`);
   const metaInner = bits.length ? bits.join('<span class="dot">·</span>') : escapeHtml(task.raw || "");
 
   const action = task.done ? t("undo") : t("done");
@@ -359,6 +594,7 @@ function cardHTML(task) {
     </div>
     <div class="actions">
       <button type="button" data-act="${actKind}">${actIcon}<span>${action}</span></button>
+      <button type="button" data-act="repeat" class="${task.repeat ? "on" : ""}" title="${t("repeatCycle")}">${icon("repeat")}<span>${task.repeat ? t("repeat_" + task.repeat) : t("repeatOff")}</span></button>
       <button type="button" data-act="remove">${icon("trash")}<span>${t("remove")}</span></button>
     </div>
   </article>`;
@@ -379,6 +615,7 @@ async function addTask(text) {
   save();
   render();
   refreshCoach();
+  scheduleReminders();
   showRelated(task);
 }
 
@@ -431,13 +668,19 @@ document.body.addEventListener("click", (e) => {
     task.done = true;
     task.doneAt = todayISO();
     markActivity();
+    spawnNext(task);
   }
   if (act === "undo") task.done = false;
   if (act === "pin") task.pinned = !task.pinned;
+  if (act === "repeat") {
+    const order = [null, "daily", "weekly", "monthly"];
+    task.repeat = order[(order.indexOf(task.repeat || null) + 1) % order.length];
+  }
   if (act === "remove") state.tasks = state.tasks.filter((x) => x.id !== id);
   save();
   render();
   refreshCoach();
+  scheduleReminders();
 });
 
 document.getElementById("lang").addEventListener("change", (e) => {
@@ -522,6 +765,7 @@ document.getElementById("importFile").addEventListener("change", (e) => {
       renderInterview();
       render();
       refreshCoach();
+      scheduleReminders();
       setMenu(false);
       window.alert(t("importOk"));
     } catch {
@@ -777,14 +1021,26 @@ document.getElementById("interview").addEventListener("keydown", (e) => {
   answerQuestion(e.target.value.trim() || "there");
 });
 
+document.getElementById("remindBtn").addEventListener("click", toggleReminders);
+
 paintIcons();
 fillLangSelect();
 applyTheme(currentTheme());
 seedIfEmpty();
+setupVoice();
 applyLang();
 loadBriefing();
 render();
 refreshCoach();
+updateReminderUI();
+scheduleReminders();
+
+/* Re-check reminder timers on focus and around the day boundary. */
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) scheduleReminders();
+});
+setInterval(scheduleReminders, 15 * 60 * 1000);
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }

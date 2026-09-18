@@ -1,4 +1,4 @@
-const CACHE = "lazem-shell-v3";
+const CACHE = "lazem-shell-v4";
 const SHELL = [
   "./",
   "./index.html",
@@ -25,6 +25,19 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Focus (or open) the app when a reminder notification is tapped.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) return c.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("./");
+    })
+  );
 });
 
 // Network-first: always try fresh so new deploys show immediately;
