@@ -908,6 +908,16 @@ footer a { color: var(--accent); }
 .sheet-qr { display: grid; place-items: center; margin: 0.2rem 0 1rem; }
 .sheet-qr canvas, .sheet-qr img { width: 190px; height: 190px; image-rendering: pixelated; border-radius: var(--radius-sm); border: 8px solid #fff; background: #fff; }
 .sheet-qr-hint { margin: 0.4rem 0 0; font-size: 0.76rem; color: var(--muted); text-align: center; }
+.sheet-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+.sheet-field label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.sheet-field input, .sheet-field select, .sheet-field textarea {
+  font: inherit; padding: 0.6rem 0.7rem; border: 1px solid var(--line-strong);
+  background: var(--card); color: var(--ink); border-radius: var(--radius-sm); width: 100%;
+}
+.sheet-field textarea { min-height: 6rem; resize: vertical; line-height: 1.5; }
+.sheet-field input:focus, .sheet-field select:focus, .sheet-field textarea:focus { outline: none; border-color: var(--accent); }
+.sheet-field[hidden] { display: none; }
+.sheet-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
 .sheet-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .sheet-btn {
   flex: 1; min-width: 8rem; font: inherit; font-weight: 700; cursor: pointer;

@@ -61,6 +61,14 @@
         <label class="sr" for="remindLead">When to remind</label>
         <select id="remindLead" class="lang" aria-label="When to remind"></select>
 
+        <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuInstall">Installments & bills</span></p>
+        <div class="data-actions">
+          <button type="button" class="data-btn" id="addInstallBtn"><i data-ic="coins"></i><span data-i18n="addInstall">Add installment plan</span></button>
+          <button type="button" class="data-btn" id="pasteSmsBtn"><i data-ic="bill"></i><span data-i18n="pasteSms">Paste from SMS</span></button>
+          <button type="button" class="data-btn" id="icsImportBtn"><i data-ic="calendar"></i><span data-i18n="importCalendar">Import calendar (.ics)</span></button>
+          <input type="file" id="icsImportFile" accept=".ics,text/calendar" hidden />
+        </div>
+
         <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuConverter">Currency</span></p>
         <div class="converter">
           <label class="conv-field"><input id="convUsd" type="number" inputmode="decimal" min="0" step="any" placeholder="0" /><span>USD</span></label>

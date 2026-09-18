@@ -277,10 +277,12 @@ function getStreak() {
 /* ---------- Recurring tasks ---------- */
 function spawnNext(task) {
   if (!task.repeat || !task.due) return;
+  if (task.repeatLeft != null && task.repeatLeft <= 1) return; // finite plan finished
   const nd = nextDue(task.due, task.repeat);
   if (!nd || nd === task.due) return;
   const clone = { ...task, id: uid(), done: false, pinned: false, due: nd };
   delete clone.doneAt;
+  if (clone.repeatLeft != null) clone.repeatLeft = task.repeatLeft - 1;
   state.tasks.unshift(clone);
 }
 
@@ -1020,6 +1022,88 @@ function doImport() {
   showToast(t("importDone"));
 }
 
+/* ---------- Installment plans (Egyptian BNPL presets) ---------- */
+function addInstallment(provider, monthly, months, due) {
+  const task = {
+    id: uid(), done: false,
+    title: `${provider} · ${t("installLabel")}`,
+    raw: `${provider} installment ${monthly} EGP`,
+    category: "bill", bill_kind: null, amount: monthly, due, time: null,
+    repeat: "monthly", repeatLeft: months, installTotal: months,
+  };
+  state.tasks.unshift(task);
+  save();
+  render();
+  refreshCoach();
+  scheduleReminders();
+  showToast(sub(t("installDone"), { n: months }));
+}
+function openInstallSheet() {
+  const provOpts =
+    ["ValU", "Souhoola", "Halan", "Aman", "Sympl"].map((p) => `<option value="${p}">${p}</option>`).join("") +
+    `<option value="__card">${t("provCard")}</option><option value="__other">${t("provOther")}</option>`;
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("coins")} ${t("installTitle")}</h3>` +
+    `<div class="sheet-field"><label for="instProvider">${t("instProvider")}</label><select id="instProvider">${provOpts}</select></div>` +
+    `<div class="sheet-field" id="instCustomWrap" hidden><label for="instCustom">${t("instCustom")}</label><input id="instCustom" maxlength="40" /></div>` +
+    `<div class="sheet-row2">` +
+      `<div class="sheet-field"><label for="instAmount">${t("instAmount")}</label><input id="instAmount" type="number" inputmode="decimal" min="0" step="any" /></div>` +
+      `<div class="sheet-field"><label for="instMonths">${t("instMonths")}</label><input id="instMonths" type="number" inputmode="numeric" min="1" max="60" value="12" /></div>` +
+    `</div>` +
+    `<div class="sheet-field"><label for="instDue">${t("instDue")}</label><input id="instDue" type="date" value="${todayISO()}" /></div>` +
+    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="install-save">${icon("check")} ${t("instSave")}</button></div>`
+  );
+  const sel = document.getElementById("instProvider");
+  if (sel) sel.addEventListener("change", (e) => {
+    document.getElementById("instCustomWrap").hidden = e.target.value !== "__other";
+  });
+}
+
+/* ---------- Paste-from-SMS ---------- */
+function openSmsSheet() {
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("bill")} ${t("smsTitle")}</h3>` +
+    `<p class="sheet-sub">${t("smsHint")}</p>` +
+    `<div class="sheet-field"><textarea id="smsText" maxlength="600"></textarea></div>` +
+    `<div class="sheet-actions"><button class="sheet-btn" data-sheet="sms-parse">${icon("check")} ${t("smsParse")}</button></div>`
+  );
+}
+
+/* ---------- Import calendar (.ics) ---------- */
+function icsUnescape(s) {
+  return String(s).replace(/\\n/gi, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
+}
+function parseICS(text) {
+  const unfolded = String(text).replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "");
+  const lines = unfolded.split(/\r?\n/);
+  const events = [];
+  let cur = null;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") { cur = {}; continue; }
+    if (line === "END:VEVENT") { if (cur) events.push(cur); cur = null; continue; }
+    if (!cur) continue;
+    const idx = line.indexOf(":");
+    if (idx < 0) continue;
+    const key = line.slice(0, idx).split(";")[0].toUpperCase();
+    const val = line.slice(idx + 1);
+    if (key === "SUMMARY") cur.summary = icsUnescape(val);
+    else if (key === "DESCRIPTION") cur.description = icsUnescape(val);
+    else if (key === "DTSTART") cur.dtstart = val.trim();
+  }
+  return events;
+}
+function icsToShareItem(ev) {
+  if (!ev.dtstart) return null;
+  const dm = String(ev.dtstart).match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+  if (!dm) return null;
+  const d = `${dm[1]}-${dm[2]}-${dm[3]}`;
+  const tm = dm[4] ? `${dm[4]}:${dm[5]}` : null;
+  const title = (ev.summary || "Event").slice(0, 80);
+  return { t: title, r: ev.summary || title, c: classify(title), d, tm, a: parseAmount(ev.summary || "") || null };
+}
+
 function seedIfEmpty() {
   if (state.tasks.length) return;
   state.tasks = [
@@ -1125,7 +1209,12 @@ function cardHTML(task) {
   if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
   const anom = anomalyPct(task);
   if (anom) bits.push(`<span class="anomaly-flag">${icon("alert")} ${sub(t("anomaly"), { pct: anom })}</span>`);
-  if (task.repeat) bits.push(`<span class="repeat-flag">${icon("repeat")} ${t("repeat_" + task.repeat)}</span>`);
+  if (task.installTotal) {
+    const idx = task.installTotal - (task.repeatLeft != null ? task.repeatLeft : task.installTotal) + 1;
+    bits.push(`<span class="repeat-flag">${icon("repeat")} ${sub(t("installIndex"), { i: idx, n: task.installTotal })}</span>`);
+  } else if (task.repeat) {
+    bits.push(`<span class="repeat-flag">${icon("repeat")} ${t("repeat_" + task.repeat)}</span>`);
+  }
   if (subs.length) {
     const pct = Math.round((subDone / subs.length) * 100);
     bits.push(`<span class="sub-progress">${icon("listcheck")} ${subDone}/${subs.length}<span class="bar"><span style="width:${pct}%"></span></span></span>`);
@@ -1369,9 +1458,50 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
     return;
   }
   if (act === "import") { doImport(); return; }
+  if (act === "install-save") {
+    const provSel = document.getElementById("instProvider").value;
+    const custom = (document.getElementById("instCustom") || {}).value || "";
+    const provider = provSel === "__other" ? custom.trim() : provSel === "__card" ? t("provCard") : provSel;
+    const monthly = Number(document.getElementById("instAmount").value);
+    const months = Math.max(1, Math.min(60, Math.round(Number(document.getElementById("instMonths").value) || 0)));
+    const due = document.getElementById("instDue").value;
+    if (!provider || !(monthly > 0) || !months || !due) return;
+    closeSheet();
+    addInstallment(provider, monthly, months, due);
+    return;
+  }
+  if (act === "sms-parse") {
+    const txt = ((document.getElementById("smsText") || {}).value || "").trim();
+    if (!txt) { showToast(t("smsEmpty")); return; }
+    closeSheet();
+    addTask(txt).catch(() => {});
+    return;
+  }
 });
 document.getElementById("sheet").addEventListener("click", (e) => {
   if (e.target.id === "sheet") closeSheet();
+});
+
+document.getElementById("addInstallBtn").addEventListener("click", () => { setMenu(false); openInstallSheet(); });
+document.getElementById("pasteSmsBtn").addEventListener("click", () => { setMenu(false); openSmsSheet(); });
+document.getElementById("icsImportBtn").addEventListener("click", () => document.getElementById("icsImportFile").click());
+document.getElementById("icsImportFile").addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const items = parseICS(reader.result).map(icsToShareItem).filter(Boolean);
+      if (!items.length) { showToast(t("icsNone")); return; }
+      state._importTasks = items;
+      setMenu(false);
+      openImportSheet(items.length);
+    } catch {
+      showToast(t("icsErr"));
+    }
+  };
+  reader.readAsText(file);
 });
 window.addEventListener("hashchange", checkSharedLink);
 
