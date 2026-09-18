@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="classic">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لازم — Lazem</title>
+  <meta name="description" content="Bills, meds, and errands for a Cairo day. Stays on your phone." />
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <div>
+        <p class="eyebrow" data-i18n="eyebrow">Cairo · local-first</p>
+        <h1><span class="mark" aria-hidden="true"></span>Lazem</h1>
+        <p class="tag" data-i18n="tag">Unstructured notes become typed work: bill, medication, errand.</p>
+      </div>
+      <div class="tools">
+        <div class="themes" role="radiogroup" aria-label="Theme">
+          <button type="button" data-set="classic" title="Classic" aria-label="Classic"></button>
+          <button type="button" data-set="dark" title="Dark" aria-label="Dark"></button>
+          <button type="button" data-set="girly" title="Girly" aria-label="Girly"></button>
+          <button type="button" data-set="simple" title="Simple" aria-label="Simple"></button>
+        </div>
+        <p class="theme-name" id="themeName">Classic</p>
+        <label class="sr" for="lang">Language</label>
+        <select id="lang" class="lang" aria-label="Language"></select>
+      </div>
+    </header>
+
+    <section class="brief" id="brief">
+      <p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p>
+    </section>
+
+    <section class="interview" id="interview" hidden></section>
+    <section class="coach" id="coach" hidden></section>
+
+    <form class="composer" id="composer">
+      <label class="sr" for="note" data-i18n="noteLabel">أضيفي مهمة</label>
+      <input id="note" name="note" autocomplete="off" maxlength="240"
+             placeholder="electricity 5 Oct 850 EGP" />
+      <button type="submit" data-i18n="add">Parse</button>
+    </form>
+    <p class="hint" data-i18n="hint">Examples: electricity 5 Oct 850 EGP · medicine 9pm · buy milk</p>
+    <div class="related" id="related" hidden></div>
+
+    <nav class="filters" id="filters">
+      <button type="button" data-filter="open" class="on" data-i18n="filterOpen">Inbox</button>
+      <button type="button" data-filter="bill" data-i18n="filterBill">Bills</button>
+      <button type="button" data-filter="medicine" data-i18n="filterMed">Medication</button>
+      <button type="button" data-filter="errand" data-i18n="filterErrand">Errands</button>
+      <button type="button" data-filter="done" data-i18n="filterDone">Done</button>
+    </nav>
+
+    <section id="overdue" class="stack"></section>
+    <section id="list" class="stack"></section>
+
+    <footer>
+      <p data-i18n="footer">No account. Tasks are stored in this browser only. Marwa Hashem — Technical Lead, Cairo.</p>
+    </footer>
+  </div>
+  <script src="/static/i18n.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
