@@ -31,6 +31,12 @@ const ICON_PATHS = {
   bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
   repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   coins: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+  moon: '<path d="M12 3a6.5 6.5 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  sunrise: '<path d="M12 2v7"/><path d="m8 6 4-4 4 4"/><path d="M3 18h18"/><path d="M5 18a7 7 0 0 1 14 0"/><path d="M2 14h1M21 14h1"/>',
+  sunset: '<path d="M12 9V2"/><path d="m16 5-4 4-4-4"/><path d="M3 18h18"/><path d="M5 18a7 7 0 0 1 14 0"/><path d="M2 14h1M21 14h1"/>',
+  chart: '<line x1="4" y1="20" x2="20" y2="20"/><rect x="5" y="11" width="3" height="7" rx="0.5"/><rect x="10.5" y="6" width="3" height="12" rx="0.5"/><rect x="16" y="13" width="3" height="5" rx="0.5"/>',
+  chevron: '<polyline points="6 9 12 15 18 9"/>',
 };
 
 function icon(name, cls) {

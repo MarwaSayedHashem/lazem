@@ -440,6 +440,9 @@ function startClock() {
 async function loadBriefing() {
   const wTile = document.getElementById("tileWeather");
   const fxTile = document.getElementById("tileFx");
+  const sk = `<p class="sk-k skeleton"></p><p class="sk-v skeleton"></p><p class="sk-s skeleton"></p>`;
+  wTile.innerHTML = sk;
+  fxTile.innerHTML = sk;
   try {
     const data = await getBriefing();
     state.briefing = data;
@@ -480,8 +483,16 @@ function renderFocus() {
     tile.hidden = true;
     return;
   }
+  const cleared = total > 0 && doneToday.length === total;
+  if (cleared && !state._wasCleared) celebrate();
+  state._wasCleared = cleared;
+  tile.classList.toggle("cleared", cleared);
   const center = total ? `<b>${doneToday.length}/${total}</b>` : icon("check");
-  const line = total ? sub(t("focusDone"), { done: doneToday.length, total }) : t("focusClear");
+  const line = total
+    ? cleared
+      ? t("focusCleared")
+      : sub(t("focusDone"), { done: doneToday.length, total })
+    : t("focusClear");
   const streakHtml = streak
     ? `<span class="streak">${icon("flame")} ${sub(streak === 1 ? t("streakOne") : t("streak"), { n: streak })}</span>`
     : "";
@@ -493,6 +504,113 @@ function renderFocus() {
       <p class="v">${line}</p>
       ${streakHtml}
     </div>`;
+}
+
+/* ---------- Hero greeting ---------- */
+function greetSlot() {
+  const h = cairoStamp().hour;
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 17) return "afternoon";
+  if (h >= 17 && h < 21) return "evening";
+  return "night";
+}
+
+function renderHero() {
+  const el = document.getElementById("hero");
+  if (!el) return;
+  const slot = greetSlot();
+  const iconName = { morning: "sunrise", afternoon: "sun", evening: "sunset", night: "moon" }[slot];
+  const raw = state.profile && state.profile.name ? String(state.profile.name).trim() : "";
+  const name = raw && raw !== "there" ? raw : "";
+  const greet = name ? sub(t("greet_" + slot + "_name"), { name: escapeHtml(name) }) : t("greet_" + slot);
+  let dateStr;
+  try {
+    dateStr = new Date().toLocaleDateString(state.lang === "ar" ? "ar-EG" : state.lang, {
+      weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Cairo",
+    });
+  } catch {
+    dateStr = new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" });
+  }
+  el.hidden = false;
+  el.innerHTML =
+    `<div class="hero-icon">${icon(iconName)}</div>` +
+    `<div class="hero-body"><p class="hero-greet">${greet}</p><p class="hero-date">${escapeHtml(dateStr)} · ${t("weather")}</p></div>`;
+}
+
+/* ---------- Celebration ---------- */
+function celebrate() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const root = document.documentElement;
+  const vars = ["--accent", "--accent-2", "--c-school", "--c-work", "--c-health"];
+  const colors = vars.map((v) => (getComputedStyle(root).getPropertyValue(v) || "#0f5c57").trim());
+  const layer = document.createElement("div");
+  layer.className = "confetti";
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement("span");
+    s.style.left = Math.random() * 100 + "%";
+    s.style.background = colors[i % colors.length];
+    s.style.animationDelay = (Math.random() * 0.25).toFixed(2) + "s";
+    s.style.setProperty("--x", (Math.random() * 2 - 1).toFixed(2));
+    layer.appendChild(s);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 1800);
+}
+
+/* ---------- Insights ---------- */
+function renderInsights() {
+  const root = document.getElementById("insights");
+  if (!root) return;
+  const activity = new Set(loadActivity());
+  const today = todayISO();
+  const streak = getStreak();
+  const activeDays = activity.size;
+  const doneTotal = state.tasks.filter((x) => x.done).length;
+
+  let cells = "";
+  for (let i = 69; i >= 0; i--) {
+    const d = plusDays(today, -i);
+    const on = activity.has(d);
+    const isToday = d === today;
+    cells += `<span class="hm${on ? " on" : ""}${isToday ? " today" : ""}" title="${d}"></span>`;
+  }
+
+  const open = state.tasks.filter((x) => !x.done);
+  const totalOpen = open.length;
+  const byCat = {};
+  open.forEach((x) => {
+    const c = x.category || "note";
+    byCat[c] = (byCat[c] || 0) + 1;
+  });
+  const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const varMap = { bill: "--c-bill", medicine: "--c-medicine", health: "--c-health", school: "--c-school", work: "--c-work", errand: "--c-errand", note: "--c-note" };
+  let donutBlock;
+  if (totalOpen) {
+    let acc = 0;
+    const segs = [];
+    const legend = [];
+    entries.forEach(([cat, n]) => {
+      const start = (acc / totalOpen) * 100;
+      acc += n;
+      const end = (acc / totalOpen) * 100;
+      const v = `var(${varMap[cat] || "--c-note"})`;
+      segs.push(`${v} ${start.toFixed(1)}% ${end.toFixed(1)}%`);
+      legend.push(`<div class="dl-row"><span class="dl-dot" style="background:${v}"></span><span class="dl-name">${t(cat)}</span><span class="dl-val">${n}</span></div>`);
+    });
+    donutBlock = `<div class="donut-row"><div class="donut" style="background:conic-gradient(${segs.join(",")})"><b>${totalOpen}</b></div><div class="donut-legend">${legend.join("")}</div></div>`;
+  } else {
+    donutBlock = `<p class="ins-empty">${t("insEmpty")}</p>`;
+  }
+
+  root.innerHTML =
+    `<div class="ins-stats">` +
+    `<div class="ins-stat"><div class="n">${streak}</div><div class="l">${t("insStreak")}</div></div>` +
+    `<div class="ins-stat"><div class="n">${activeDays}</div><div class="l">${t("insActive")}</div></div>` +
+    `<div class="ins-stat"><div class="n">${doneTotal}</div><div class="l">${t("insDone")}</div></div>` +
+    `</div>` +
+    `<div class="ins-block"><p class="ins-h">${t("insActivity")}</p><div class="heatmap">${cells}</div>` +
+    `<p class="hm-legend"><span class="hm"></span>${t("insLess")} <span class="hm on"></span>${t("insMore")}</p></div>` +
+    `<div class="ins-block"><p class="ins-h">${t("insBreakdown")}</p>${donutBlock}</div>`;
 }
 
 function seedIfEmpty() {
@@ -560,6 +678,8 @@ function render() {
   list.innerHTML = rest.map(cardHTML).join("");
   renderFocus();
   renderBudget();
+  const ip = document.getElementById("insights");
+  if (ip && !ip.hidden) renderInsights();
 }
 
 function cardHTML(task) {
@@ -884,6 +1004,7 @@ function skipInterview() {
 }
 
 async function refreshCoach() {
+  renderHero();
   const root = document.getElementById("coach");
   if (!state.profile.done) {
     root.hidden = true;
@@ -1022,6 +1143,23 @@ document.getElementById("interview").addEventListener("keydown", (e) => {
 });
 
 document.getElementById("remindBtn").addEventListener("click", toggleReminders);
+
+/* Insights panel toggle */
+(() => {
+  const toggle = document.getElementById("insightsToggle");
+  const panel = document.getElementById("insights");
+  if (!toggle || !panel) return;
+  toggle.addEventListener("click", () => {
+    if (panel.hidden) {
+      renderInsights();
+      panel.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+    } else {
+      panel.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
 
 paintIcons();
 fillLangSelect();

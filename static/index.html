@@ -63,12 +63,22 @@
       </aside>
     </div>
 
+    <section class="hero" id="hero" hidden></section>
+
     <section class="dash" id="brief">
       <article class="tile" id="tileWeather"><p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p></article>
       <article class="tile" id="tileFx"></article>
       <article class="tile focus" id="tileFocus" hidden></article>
       <article class="tile budget" id="tileBudget" hidden></article>
       <p class="clock" id="cairoClock"></p>
+    </section>
+
+    <section class="insights-wrap">
+      <button type="button" class="insights-toggle" id="insightsToggle" aria-expanded="false" aria-controls="insights">
+        <span class="it-label"><i data-ic="chart"></i><span data-i18n="insightsTitle">Insights</span></span>
+        <i data-ic="chevron" class="it-chev"></i>
+      </button>
+      <div class="insights" id="insights" hidden></div>
     </section>
 
     <section class="interview" id="interview" hidden></section>
