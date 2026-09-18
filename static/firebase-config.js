@@ -1,16 +1,19 @@
 /* ============================================================
    Firebase config for optional Google sign-in + cloud sync.
 
-   While these values are blank, Lazem stays 100% local — the
-   sign-in button will NOT appear and nothing is uploaded.
+   These are public web keys (safe in client code). Access is
+   protected by Google sign-in + Firestore security rules, not
+   by keeping these secret.
 
-   To turn on sync (free), see the steps in help.html or ask.
-   Fill from: Firebase console -> Project settings -> General
-   -> Your apps -> Web app -> "SDK setup and configuration".
+   When signed OUT, Lazem stays fully local. When signed in,
+   tasks sync to this Firebase project (Firestore).
    ============================================================ */
 window.LAZEM_FIREBASE = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  appId: "",
+  apiKey: "AIzaSyA3ec35zUvU8YcVoRm9gIWG8sZpW1w97MM",
+  authDomain: "lazem-432d9.firebaseapp.com",
+  projectId: "lazem-432d9",
+  storageBucket: "lazem-432d9.firebasestorage.app",
+  messagingSenderId: "451835728435",
+  appId: "1:451835728435:web:3595d405ef8636180e8946",
+  measurementId: "G-8MN79ZGGCS",
 };
