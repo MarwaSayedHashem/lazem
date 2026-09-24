@@ -752,6 +752,7 @@ function applyLang() {
   renderInterview();
   refreshCoach();
   renderTodayStats();
+  renderPinPicker();
   updateReminderUI();
   updateConverter();
 }
@@ -795,6 +796,39 @@ async function loadBriefing() {
   updateConverter();
 }
 
+const PIN_ALL = ["weather", "dollar", "convert", "due", "overdue", "streak", "focus"];
+const PIN_STORE = "lazem.pins.v1";
+function loadPins() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PIN_STORE) || "null");
+    if (Array.isArray(raw)) return raw.filter((k) => PIN_ALL.includes(k)).slice(0, 3);
+  } catch {}
+  return ["weather", "dollar"];
+}
+state.pins = loadPins();
+function savePins() {
+  localStorage.setItem(PIN_STORE, JSON.stringify(state.pins));
+}
+function renderPinPicker() {
+  const root = document.getElementById("pinPicks");
+  if (!root) return;
+  const labels = { weather: "pinWeather", dollar: "pinDollar", convert: "pinConvert", due: "pinDue", overdue: "pinOverdue", streak: "pinStreak", focus: "pinFocus" };
+  root.innerHTML = PIN_ALL.map((k) => {
+    const on = state.pins.includes(k);
+    return `<button type="button" class="${on ? "on" : ""}" data-pin="${k}" aria-pressed="${on}">${t(labels[k])}</button>`;
+  }).join("");
+}
+function togglePin(key) {
+  if (!PIN_ALL.includes(key)) return;
+  if (state.pins.includes(key)) state.pins = state.pins.filter((k) => k !== key);
+  else if (state.pins.length >= 3) { showToast(t("pinsFull")); return; }
+  else state.pins = state.pins.concat(key);
+  savePins();
+  renderPinPicker();
+  renderTodayStats();
+  updateConverter();
+}
+
 function renderTodayStats() {
   const el = document.getElementById("todayStats");
   if (!el) return;
@@ -811,30 +845,22 @@ function renderTodayStats() {
   const todayEl = document.getElementById("today");
   if (todayEl) todayEl.classList.toggle("cleared", cleared);
   const streak = getStreak();
-  const wLabel = weatherLabel(w.code) || "";
-
-  const parts = [];
-  parts.push(
-    `<div class="stat"><span class="stat-ic">${icon("weather")}</span>` +
-    `<b>${w.temp_c != null ? Math.round(w.temp_c) + "°" : "—"}</b>` +
-    `<span class="stat-s">${escapeHtml(wLabel || t("weather"))}</span></div>`
-  );
-  parts.push(
-    `<div class="stat"><span class="stat-ic">${icon("dollar")}</span>` +
-    `<b>${fx.usd_egp != null ? fx.usd_egp : "—"}</b>` +
-    `<span class="stat-s">USD → EGP</span></div>`
-  );
-  parts.push(
-    `<div class="stat"><span class="ring-mini" style="--p:${pct}"><b>${total ? doneToday.length + "/" + total : "—"}</b></span>` +
-    `<span class="stat-s">${cleared ? t("focusCleared") : t("focusTitle")}</span></div>`
-  );
-  if (streak) {
-    parts.push(
-      `<div class="stat"><span class="stat-ic streak-ic">${icon("flame")}</span>` +
-      `<b>${streak}</b><span class="stat-s">${t("insStreak")}</span></div>`
-    );
-  }
+  const dueCount = state.tasks.filter((x) => !x.done && x.due === today).length;
+  const overdueCount = state.tasks.filter((x) => isOverdue(x)).length;
+  const pins = state.pins || [];
+  const glance = {
+    weather: `<div class="stat"><span class="stat-ic">${icon("weather")}</span><b>${w.temp_c != null ? Math.round(w.temp_c) + "°" : "—"}</b><span class="stat-s">${escapeHtml(weatherLabel(w.code) || t("pinWeather"))}</span></div>`,
+    dollar: `<div class="stat"><span class="stat-ic">${icon("dollar")}</span><b>${fx.usd_egp != null ? fx.usd_egp : "—"}</b><span class="stat-s">USD → EGP</span></div>`,
+    due: `<div class="stat"><span class="stat-ic">${icon("calendar")}</span><b>${dueCount}</b><span class="stat-s">${t("pinDue")}</span></div>`,
+    overdue: `<div class="stat"><span class="stat-ic">${icon("alert")}</span><b>${overdueCount}</b><span class="stat-s">${t("pinOverdue")}</span></div>`,
+    streak: `<div class="stat"><span class="stat-ic streak-ic">${icon("flame")}</span><b>${streak}</b><span class="stat-s">${t("pinStreak")}</span></div>`,
+    focus: `<div class="stat"><span class="ring-mini" style="--p:${pct}"><b>${total ? doneToday.length + "/" + total : "—"}</b></span><span class="stat-s">${cleared ? t("focusCleared") : t("pinFocus")}</span></div>`,
+  };
+  const parts = pins.filter((k) => glance[k]).map((k) => glance[k]);
+  el.hidden = !parts.length;
   el.innerHTML = parts.join("");
+  const conv = document.getElementById("pinConvert");
+  if (conv) conv.hidden = !pins.includes("convert");
 }
 
 /* ---------- Hero greeting ---------- */
@@ -1433,11 +1459,11 @@ function cardHTML(task) {
       <button type="button" class="expand-btn" data-act="expand" aria-label="${t("details")}" title="${t("details")}">${icon("chevron")}</button>
     </div>
     <div class="actions">
-      <button type="button" data-act="${actKind}">${actIcon}<span>${action}</span></button>
-      <button type="button" data-act="repeat" class="${task.repeat ? "on" : ""}" title="${t("repeatCycle")}">${icon("repeat")}<span>${task.repeat ? t("repeat_" + task.repeat) : t("repeatOff")}</span></button>
-      <button type="button" data-act="snooze">${icon("clockplus")}<span>${t("snooze")}</span></button>
-      <button type="button" data-act="phone">${icon("bell")}<span>${t("phoneRemind")}</span></button>
-      <button type="button" data-act="remove">${icon("trash")}<span>${t("remove")}</span></button>
+      <button type="button" class="act-main" data-act="${actKind}">${actIcon}<span>${action}</span></button>
+      <button type="button" class="quiet ${task.repeat ? "on" : ""}" data-act="repeat" aria-label="${t("repeatCycle")}" title="${t("repeatCycle")}">${icon("repeat")}</button>
+      <button type="button" class="quiet" data-act="snooze" aria-label="${t("snooze")}" title="${t("snooze")}">${icon("clockplus")}</button>
+      <button type="button" class="quiet" data-act="phone" aria-label="${t("phoneRemind")}" title="${t("phoneRemind")}">${icon("bell")}</button>
+      <button type="button" class="quiet danger" data-act="remove" aria-label="${t("remove")}" title="${t("remove")}">${icon("trash")}</button>
     </div>
     ${expanded ? detailsHTML(task, subs) : ""}
   </article>`;
@@ -2386,6 +2412,11 @@ window.lazemAuthUI = (user) => {
     }
   });
 })();
+
+document.getElementById("pinPicks").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-pin]");
+  if (btn) togglePin(btn.dataset.pin);
+});
 
 paintIcons();
 fillLangSelect();

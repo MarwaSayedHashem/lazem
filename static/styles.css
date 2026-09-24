@@ -167,7 +167,9 @@ body {
 /* ---------- Header ---------- */
 /* Force the app-bar to lay out left-to-right so the menu button is always
    physically on the left, even in Arabic/RTL. Brand text keeps its own dir. */
-.top { display: flex; gap: 0.9rem; align-items: flex-start; direction: ltr; }
+.top { display: flex; gap: 0.75rem; align-items: center; direction: ltr; margin-bottom: 0.35rem; }
+.top h1 { font-size: 1.45rem; margin: 0; }
+.top .mark { width: 1.35rem; height: 1.35rem; font-size: 0.95rem; border-radius: 0.4rem; }
 .brand { flex: 1; min-width: 0; }
 [dir="rtl"] .brand { direction: rtl; text-align: right; }
 .eyebrow {
@@ -313,27 +315,27 @@ body.menu-open { overflow: hidden; }
 
 /* ---------- Today card (consolidated greeting + weather + USD + focus) ---------- */
 .today {
-  margin: 1.4rem 0 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background:
-    radial-gradient(120% 130% at 100% -20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--card)), var(--card));
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  animation: rise 0.5s both;
+  margin: 0 0 0.65rem;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
 }
 [data-theme="simple"] .today { background: var(--card); }
-.today-head { display: flex; align-items: center; gap: 0.9rem; padding: 1.1rem 1.2rem; }
+.today-head { display: flex; align-items: center; gap: 0.7rem; padding: 0.15rem 0 0.15rem; }
 .today-icon {
-  flex: none; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center;
+  flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
   background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
 }
 .today-icon .ic { width: 1.55rem; height: 1.55rem; }
 .today-greet-wrap { min-width: 0; }
-.today-greet { margin: 0; font-family: var(--display); font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.12; }
-.today-date { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.84rem; }
-.today-stats { display: flex; border-top: 1px solid var(--line); }
+.today-greet { margin: 0; font-family: var(--display); font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.today-date { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.8rem; }
+.today-stats {
+  display: flex; margin: 0.15rem 0 0.9rem;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); overflow: hidden;
+}
+.today-stats[hidden] { display: none; }
 .today-stats .brief-loading { padding: 0.9rem 1.2rem; margin: 0; }
 .today-stats .stat {
   flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.28rem;
@@ -657,7 +659,28 @@ body.menu-open { overflow: hidden; }
 }
 [data-theme="simple"] .actions button { border-radius: var(--radius-xs); }
 .actions button .ic { width: 0.95rem; height: 0.95rem; }
-.actions button[data-act="done"]:hover { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); background: color-mix(in srgb, var(--ok) 10%, var(--card)); }
+.actions button.act-main {
+  background: var(--accent); color: var(--btn-fg); border-color: var(--accent); padding: 0.38rem 0.85rem;
+}
+.actions button.act-main:hover { background: var(--accent-soft); color: var(--btn-fg); }
+.actions button.quiet {
+  width: 2rem; height: 2rem; padding: 0; justify-content: center; color: var(--faint);
+}
+.actions button.quiet.on { color: var(--accent); border-color: var(--accent); }
+.actions button.quiet.danger:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); }
+.actions button[data-act="done"]:hover { color: var(--btn-fg); }
+.pin-picks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.pin-picks button {
+  font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
+  padding: 0.4rem 0.7rem; border-radius: 999px;
+}
+.pin-picks button.on { background: var(--accent); color: var(--btn-fg); border-color: var(--accent); }
+.pin-convert {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 0.55rem;
+  margin: -0.35rem 0 0.9rem;
+}
+.pin-convert .conv-rate { grid-column: 1 / -1; margin: 0; }
 .actions button[data-act="undo"]:hover { color: var(--accent); border-color: var(--accent); }
 .actions button[data-act="remove"]:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, var(--card)); }
 
