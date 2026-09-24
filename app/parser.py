@@ -66,6 +66,41 @@ def parse_amount(text: str) -> Optional[float]:
     return None
 
 
+def parse_times(text: str) -> list[str]:
+    found: list[str] = []
+    for m in re.finditer(
+        r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|ص|م|hs|uhr)\b",
+        text,
+        re.IGNORECASE,
+    ):
+        hour = int(m.group(1))
+        minute = int(m.group(2) or 0)
+        suffix = m.group(3).lower()
+        if suffix in ("pm", "م") and hour < 12:
+            hour += 12
+        if suffix in ("am", "ص") and hour == 12:
+            hour = 0
+        if hour > 23 or minute > 59:
+            continue
+        clock = f"{hour:02d}:{minute:02d}"
+        if clock not in found:
+            found.append(clock)
+    if not found:
+        one = parse_time(text)
+        if one:
+            found.append(one)
+    return found
+
+
+def shopping_items(text: str, category: str) -> list[str]:
+    if category != "errand":
+        return []
+    stripped = re.sub(r"^(?:please\s+)?(?:buy|get|pick up|اشتري|اشترِ|جيب|هات)\s+", "", text, flags=re.IGNORECASE)
+    parts = [p.strip() for p in re.split(r"\s+(?:and|&|\+)\s+|\s+و\s*", stripped, flags=re.IGNORECASE)]
+    parts = [p for p in parts if 1 < len(p) < 40]
+    return parts[:12] if len(parts) >= 2 else []
+
+
 def parse_time(text: str) -> Optional[str]:
     m = re.search(
         r"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|ص|م|hs|uhr)\b",
@@ -188,14 +223,16 @@ def parse_task(text: str, today: Optional[date] = None) -> dict:
     bill_kind = _bill_kind(raw)
     category = classify(raw)
     due = parse_due(raw, today)
-    when = parse_time(raw.lower())
+    times = parse_times(raw)
+    when = times[0] if times else None
+    items = shopping_items(raw, category)
     if category == "bill" and not due:
         nxt = date(today.year + (today.month == 12), (today.month % 12) + 1, 1)
         due = (nxt - timedelta(days=1)).isoformat()
     if when and not due:
         due = today.isoformat()
     amount = parse_amount(raw)
-    return {
+    out = {
         "title": _title(raw, bill_kind),
         "raw": raw,
         "category": category,
@@ -205,3 +242,8 @@ def parse_task(text: str, today: Optional[date] = None) -> dict:
         "due": due,
         "time": when,
     }
+    if len(times) > 1:
+        out["times"] = times
+    if items:
+        out["items"] = items
+    return out

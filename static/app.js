@@ -56,23 +56,101 @@ function buildICS(tasks) {
   tasks.forEach((task) => {
     if (!task.due) return;
     const ymd = task.due.replace(/-/g, "");
-    lines.push("BEGIN:VEVENT", "UID:" + (task.id || uid()) + "@lazem", "DTSTAMP:" + stamp);
-    if (task.time) {
-      const hm = String(task.time).replace(":", "");
-      lines.push("DTSTART:" + ymd + "T" + hm + "00");
-    } else {
-      lines.push("DTSTART;VALUE=DATE:" + ymd);
-      lines.push("DTEND;VALUE=DATE:" + plusDays(task.due, 1).replace(/-/g, ""));
-    }
-    const money = moneyText(task);
-    const summary = displayTitle(task) + (money ? ` (${money})` : "");
-    lines.push("SUMMARY:" + icsEscape(summary));
-    if (task.note && task.note.trim()) lines.push("DESCRIPTION:" + icsEscape(task.note.trim()));
-    lines.push("END:VEVENT");
+    const clocks = taskTimes(task);
+    const slots = clocks.length ? clocks : [null];
+    slots.forEach((clock, i) => {
+      lines.push("BEGIN:VEVENT", "UID:" + (task.id || uid()) + "-" + i + "@lazem", "DTSTAMP:" + stamp);
+      if (clock) {
+        const hm = String(clock).replace(":", "");
+        lines.push("DTSTART:" + ymd + "T" + hm + "00");
+        lines.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Lazem", "TRIGGER:PT0S", "END:VALARM");
+      } else {
+        lines.push("DTSTART;VALUE=DATE:" + ymd);
+        lines.push("DTEND;VALUE=DATE:" + plusDays(task.due, 1).replace(/-/g, ""));
+        lines.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Lazem", "TRIGGER:PT9H", "END:VALARM");
+      }
+      const money = moneyText(task);
+      const summary = displayTitle(task) + (money ? ` (${money})` : "");
+      lines.push("SUMMARY:" + icsEscape(summary));
+      if (task.note && task.note.trim()) lines.push("DESCRIPTION:" + icsEscape(task.note.trim()));
+      lines.push("END:VEVENT");
+    });
   });
   lines.push("END:VCALENDAR");
   return lines.join("\r\n");
 }
+function snoozeTask(task, kind) {
+  const cairo = cairoStamp();
+  const pad = (n) => String(n).padStart(2, "0");
+  if (kind === "tomorrow") {
+    task.due = plusDays(todayISO(), 1);
+    return;
+  }
+  if (kind === "tonight") {
+    const late = cairo.hour > 20 || (cairo.hour === 20 && cairo.minute > 0);
+    task.due = late ? plusDays(todayISO(), 1) : todayISO();
+    task.time = "20:00";
+    task.times = ["20:00"];
+    return;
+  }
+  let hour = cairo.hour + 3;
+  let due = todayISO();
+  if (hour >= 24) { hour -= 24; due = plusDays(due, 1); }
+  task.due = due;
+  task.time = pad(hour) + ":" + pad(cairo.minute);
+  task.times = [task.time];
+}
+
+function openSnoozeSheet(task) {
+  state._snoozeId = task.id;
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("clockplus")} ${t("snooze")}</h3>` +
+    `<div class="sheet-actions">` +
+    `<button class="sheet-btn" data-sheet="snooze" data-to="later">${t("snoozeLater")}</button>` +
+    `<button class="sheet-btn" data-sheet="snooze" data-to="tonight">${t("snoozeTonight")}</button>` +
+    `<button class="sheet-btn" data-sheet="snooze" data-to="tomorrow">${t("snoozeTomorrow")}</button>` +
+    `</div>`
+  );
+}
+
+function googleCalUrl(task, clock) {
+  const ymd = String(task.due || todayISO()).replace(/-/g, "");
+  let start;
+  let end;
+  if (clock) {
+    const hm = String(clock).replace(":", "") + "00";
+    start = ymd + "T" + hm;
+    const [h, m] = String(clock).split(":").map(Number);
+    const endMin = h * 60 + m + 30;
+    const eh = Math.floor(endMin / 60) % 24;
+    const em = endMin % 60;
+    end = ymd + "T" + String(eh).padStart(2, "0") + String(em).padStart(2, "0") + "00";
+  } else {
+    start = ymd;
+    end = plusDays(task.due || todayISO(), 1).replace(/-/g, "");
+  }
+  const text = encodeURIComponent(displayTitle(task));
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + text + "&dates=" + start + "/" + end;
+}
+
+function openPhoneSheet(task) {
+  if (!task.due) task.due = todayISO();
+  state._phoneId = task.id;
+  const clocks = taskTimes(task);
+  const links = (clocks.length ? clocks : [null]).map((clock) => {
+    const label = clock ? sub(t("phoneAt"), { time: clock }) : t("phoneDay");
+    return `<a class="sheet-btn" href="${googleCalUrl(task, clock)}" target="_blank" rel="noopener">${icon("calendar")} ${label}</a>`;
+  }).join("");
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("bell")} ${t("phoneTitle")}</h3>` +
+    `<p class="sheet-sub">${t("phoneHint")}</p>` +
+    `<div class="sheet-actions">${links}` +
+    `<button class="sheet-btn ghost" data-sheet="phone-ics">${icon("download")} ${t("phoneApple")}</button></div>`
+  );
+}
+
 function downloadICS(tasks, name) {
   const withDue = tasks.filter((x) => x.due);
   if (!withDue.length) return;
@@ -405,14 +483,19 @@ function markNotified(key) {
 function wasNotified(key) {
   return loadNotified().includes(key);
 }
-function showReminder(task, du) {
+function taskTimes(task) {
+  if (Array.isArray(task.times) && task.times.length) return task.times.filter(Boolean);
+  return task.time ? [task.time] : [];
+}
+function showReminder(task, du, clock) {
   const advance = du && du > 0;
-  const key = `${task.id}:${todayISO()}:${advance ? "adv" : task.time || "due"}`;
+  const when = clock || task.time || "due";
+  const key = `${task.id}:${todayISO()}:${advance ? "adv" : when}`;
   if (wasNotified(key)) return;
   markNotified(key);
   const parts = [];
   if (advance) parts.push(sub(t("dueInDays"), { n: du }));
-  if (task.time) parts.push(task.time);
+  if (when && when !== "due") parts.push(when);
   if (task.amount) parts.push(moneyText(task));
   parts.push(t(task.category));
   const body = parts.filter(Boolean).join(" · ");
@@ -436,9 +519,12 @@ function scheduleReminders() {
   const today = todayISO();
   const now = new Date();
   state.tasks
-    .filter((x) => !x.done && x.due === today && x.time)
+    .filter((x) => !x.done && x.due === today && taskTimes(x).length)
     .forEach((task) => {
-      const parts = String(task.time).split(":");
+      taskTimes(task).forEach((clock) => scheduleOne(task, clock, now));
+    });
+  function scheduleOne(task, clock, now) {
+      const parts = String(clock).split(":");
       const h = Number(parts[0]);
       const m = Number(parts[1] || 0);
       if (Number.isNaN(h)) return;
@@ -446,11 +532,11 @@ function scheduleReminders() {
       target.setHours(h, m, 0, 0);
       const ms = target.getTime() - now.getTime();
       if (ms > 0 && ms < 26 * 3600 * 1000) {
-        reminderTimers.push(setTimeout(() => showReminder(task), ms));
+        reminderTimers.push(setTimeout(() => showReminder(task, 0, clock), ms));
       } else if (ms <= 0 && ms > -3600 * 1000) {
-        showReminder(task);
+        showReminder(task, 0, clock);
       }
-    });
+  }
   // Automatic: also remind the day before anything with a due date.
   state.tasks
     .filter((x) => !x.done && x.due)
@@ -1312,7 +1398,8 @@ function cardHTML(task) {
 
   const bits = [];
   if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(formatDue(task.due))}</span>`);
-  if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
+  const clocks = taskTimes(task);
+  if (clocks.length) bits.push(`<span>${escapeHtml(clocks.join(" · "))}</span>`);
   if (task.amount) bits.push(`<span class="amount">${escapeHtml(moneyText(task))}</span>`);
   const anom = anomalyPct(task);
   if (anom) bits.push(`<span class="anomaly-flag">${icon("alert")} ${sub(t("anomaly"), { pct: anom })}</span>`);
@@ -1348,6 +1435,8 @@ function cardHTML(task) {
     <div class="actions">
       <button type="button" data-act="${actKind}">${actIcon}<span>${action}</span></button>
       <button type="button" data-act="repeat" class="${task.repeat ? "on" : ""}" title="${t("repeatCycle")}">${icon("repeat")}<span>${task.repeat ? t("repeat_" + task.repeat) : t("repeatOff")}</span></button>
+      <button type="button" data-act="snooze">${icon("clockplus")}<span>${t("snooze")}</span></button>
+      <button type="button" data-act="phone">${icon("bell")}<span>${t("phoneRemind")}</span></button>
       <button type="button" data-act="remove">${icon("trash")}<span>${t("remove")}</span></button>
     </div>
     ${expanded ? detailsHTML(task, subs) : ""}
@@ -1438,6 +1527,11 @@ function escapeHtml(s) {
 async function addTask(text) {
   const parsed = parseTask(text);
   const task = { id: uid(), done: false, ...parsed };
+  if (Array.isArray(parsed.items) && parsed.items.length) {
+    task.subtasks = parsed.items.map((text) => ({ id: uid(), text: String(text).slice(0, 80), done: false }));
+    state.expanded.add(task.id);
+  }
+  delete task.items;
   state.tasks.unshift(task);
   state.justAdded = task.id;
   save();
@@ -1637,6 +1731,25 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
   if (!btn) return;
   const act = btn.dataset.sheet;
   if (act === "close") { closeSheet(); return; }
+  if (act === "snooze") {
+    const task = state.tasks.find((x) => x.id === state._snoozeId);
+    if (task) {
+      snoozeTask(task, btn.dataset.to);
+      task.sample = false;
+      save();
+      render();
+      scheduleReminders();
+      showToast(t("snoozed"));
+    }
+    closeSheet();
+    return;
+  }
+  if (act === "phone-ics") {
+    const task = state.tasks.find((x) => x.id === state._phoneId);
+    if (task) downloadICS([task], "lazem-reminder");
+    closeSheet();
+    return;
+  }
   if (act === "cancel") { clearShareHash(); closeSheet(); return; }
   if (act === "copy") {
     const input = document.getElementById("shareUrl");
@@ -1774,6 +1887,8 @@ document.body.addEventListener("click", (e) => {
     if (inp) addSubtask(id, inp.value);
     return;
   }
+  if (act === "snooze") { openSnoozeSheet(task); return; }
+  if (act === "phone") { openPhoneSheet(task); return; }
 
   const undoSnapshotFor = act === "remove" || act === "done" ? JSON.stringify(state.tasks) : null;
 
@@ -2232,6 +2347,8 @@ window.lazemApplyRemote = (data) => {
   } catch (e) {}
   window._lazemApplying = false;
 };
+window.lazemT = (key, params) => (params ? sub(t(key), params) : t(key));
+window.lazemToast = (msg) => showToast(msg);
 window.lazemAuthUI = (user) => {
   const signInBtn = document.getElementById("signInBtn");
   const signedIn = document.getElementById("signedIn");

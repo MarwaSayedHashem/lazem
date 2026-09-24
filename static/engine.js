@@ -77,6 +77,38 @@ function parseAmount(text) {
   return null;
 }
 
+function clockFromMatch(hour, minute, suffix) {
+  let h = Number(hour);
+  const m = Number(minute || 0);
+  const s = String(suffix || "").toLowerCase();
+  if ((s === "pm" || s === "م") && h < 12) h += 12;
+  if ((s === "am" || s === "ص") && h === 12) h = 0;
+  if (h > 23 || m > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function parseTimes(text) {
+  const found = [];
+  const re = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|ص|م|hs|uhr)\b/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const clock = clockFromMatch(m[1], m[2], m[3]);
+    if (clock && !found.includes(clock)) found.push(clock);
+  }
+  if (!found.length) {
+    const one = parseTime(text);
+    if (one) found.push(one);
+  }
+  return found;
+}
+
+function shoppingItems(text, category) {
+  if (category !== "errand") return [];
+  const stripped = String(text || "").replace(/^(?:please\s+)?(?:buy|get|pick up|اشتري|اشترِ|جيب|هات)\s+/i, "");
+  const parts = stripped.split(/\s+(?:and|&|\+)\s+|\s+و\s*/i).map((s) => s.trim()).filter((s) => s.length > 1 && s.length < 40);
+  return parts.length >= 2 ? parts.slice(0, 12) : [];
+}
+
 function parseTime(text) {
   let m = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|ص|م|hs|uhr)\b/i);
   if (m) {
@@ -249,7 +281,9 @@ function parseTask(text) {
   const kind = billKind(raw);
   const category = classify(raw);
   let due = parseDue(raw, todayIso);
-  const time = parseTime(raw.toLowerCase());
+  const times = parseTimes(raw);
+  const time = times[0] || null;
+  const items = shoppingItems(raw, category);
   if (category === "bill" && !due) {
     const y = Number(todayIso.slice(0, 4));
     const mo = Number(todayIso.slice(5, 7));
@@ -268,6 +302,8 @@ function parseTask(text) {
     currency: amount != null ? parseCurrency(raw) : null,
     due,
     time,
+    times: times.length > 1 ? times : undefined,
+    items: items.length ? items : undefined,
     repeat,
     place: parsePlace(raw),
   };

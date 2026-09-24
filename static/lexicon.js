@@ -205,6 +205,8 @@ const LEX = {
   ],
   "MED_HINTS": [
     "medicine",
+    "pressure",
+    "ضغط",
     "medication",
     "meds",
     "pill",

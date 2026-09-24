@@ -43,6 +43,15 @@
           <div id="signedIn" hidden>
             <p class="acct-line"><i data-ic="cloud"></i> <span data-i18n="signedInAs">Signed in</span> · <b id="acctEmail"></b></p>
             <button type="button" class="data-btn" id="signOutBtn"><i data-ic="logout"></i><span data-i18n="signOut">Sign out</span></button>
+            <div id="householdBox">
+              <p class="remind-note" id="householdStatus" data-i18n="houseNote">One list for the household. Start it here, then send the code.</p>
+              <button type="button" class="data-btn" id="houseStartBtn"><i data-ic="share"></i><span data-i18n="houseStart">Start a shared list</span></button>
+              <div class="house-join">
+                <input id="houseCode" maxlength="8" autocomplete="off" placeholder="Code" aria-label="Household code" />
+                <button type="button" class="data-btn" id="houseJoinBtn" data-i18n="houseJoin">Join</button>
+              </div>
+              <button type="button" class="data-btn" id="houseLeaveBtn" hidden><i data-ic="logout"></i><span data-i18n="houseLeave">Leave shared list</span></button>
+            </div>
           </div>
           <p class="remind-note" data-i18n="syncNote">Sign in to sync your tasks across your devices.</p>
         </div>

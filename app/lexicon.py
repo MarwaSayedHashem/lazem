@@ -169,6 +169,8 @@ BILL_HINTS = (
 
 MED_HINTS = (
     "medicine",
+    "pressure",
+    "ضغط",
     "medication",
     "meds",
     "pill",
