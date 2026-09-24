@@ -898,22 +898,12 @@ function renderTodayHead() {
 
 /* ---------- Celebration ---------- */
 function celebrate() {
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const root = document.documentElement;
-  const vars = ["--accent", "--accent-2", "--c-school", "--c-work", "--c-health"];
-  const colors = vars.map((v) => (getComputedStyle(root).getPropertyValue(v) || "#0f5c57").trim());
-  const layer = document.createElement("div");
-  layer.className = "confetti";
-  for (let i = 0; i < 28; i++) {
-    const s = document.createElement("span");
-    s.style.left = Math.random() * 100 + "%";
-    s.style.background = colors[i % colors.length];
-    s.style.animationDelay = (Math.random() * 0.25).toFixed(2) + "s";
-    s.style.setProperty("--x", (Math.random() * 2 - 1).toFixed(2));
-    layer.appendChild(s);
-  }
-  document.body.appendChild(layer);
-  setTimeout(() => layer.remove(), 1800);
+  const el = document.getElementById("today");
+  if (!el) return;
+  el.classList.remove("cleared-flash");
+  void el.offsetWidth;
+  el.classList.add("cleared-flash");
+  setTimeout(() => el.classList.remove("cleared-flash"), 900);
 }
 
 /* ---------- Insights ---------- */
@@ -2142,10 +2132,14 @@ function interpolate(code, params) {
   const p = { ...(params || {}) };
   if (code === "meds_today") p.time = p.time ? ` (${p.time})` : "";
   if (p.next && t("kind_" + p.next) !== "kind_" + p.next) p.next = t("kind_" + p.next);
-  let s = t("c_" + code);
+  let s = code === "week_due" && Number(p.count) === 1 ? t("c_week_due_one") : t("c_" + code);
   Object.keys(p).forEach((k) => {
     s = s.split("{" + k + "}").join(String(p[k]));
   });
+  if (!p.name) {
+    s = s.replace(/^\s*[—-]\s*/, "");
+    if (s) s = s.charAt(0).toUpperCase() + s.slice(1);
+  }
   return s;
 }
 
@@ -2216,7 +2210,8 @@ async function refreshCoach() {
   try {
     if (!state.briefing) state.briefing = await getBriefing();
     const plan = planDay(state.profile, state.tasks, state.briefing);
-    const params = { name: plan.name || state.profile.name || "there" };
+    const named = (plan.name || "").trim();
+    const params = { name: named && named !== "there" ? named : "" };
     const items = (plan.items || [])
       .map((it) => `<li>${escapeHtml(interpolate(it.code, it.params))}</li>`)
       .join("");

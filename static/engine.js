@@ -391,7 +391,8 @@ function planDay(profile, tasks, briefing) {
   const friday = weekday === 4;
   const saturday = weekday === 5;
   const monthEnd = now.day >= 25;
-  const name = (profile.name || "").trim() || "there";
+  const rawName = (profile.name || "").trim();
+  const name = rawName && rawName !== "there" ? rawName : "";
   const work = profile.work || "flex";
   const household = profile.household || "self";
   const watchFx = Boolean(profile.watch_fx);

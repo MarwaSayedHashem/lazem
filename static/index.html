@@ -125,11 +125,10 @@
     <form class="composer" id="composer">
       <label class="sr" for="note" data-i18n="noteLabel">Add a task</label>
       <input id="note" name="note" autocomplete="off" maxlength="240"
-             placeholder="electricity 5 Oct 850 EGP" />
+             placeholder="A bill, a dose, an errand" />
       <button type="button" class="mic-btn" id="micBtn" aria-label="Voice input" hidden><i data-ic="mic"></i></button>
       <button type="submit"><i data-ic="plus"></i><span data-i18n="add">Add</span></button>
     </form>
-    <p class="hint" data-i18n="hint">Examples: electricity 5 Oct 850 EGP · medicine 9pm · buy milk</p>
     <div class="today-stats" id="todayStats">
       <p class="brief-loading" data-i18n="briefLoading">Fetching Cairo weather and USD/EGP…</p>
     </div>
@@ -139,10 +138,7 @@
       <p class="conv-rate" id="convRate"></p>
     </div>
 
-    <section class="interview" id="interview" hidden></section>
-    <section class="coach" id="coach" hidden></section>
     <div class="related" id="related" hidden></div>
-    <div class="shortcuts" id="shortcuts"></div>
 
     <div class="searchbar" id="searchbar">
       <i data-ic="search"></i>
@@ -179,6 +175,10 @@
       </span>
     </div>
     <section id="list" class="stack"></section>
+
+    <section class="interview" id="interview" hidden></section>
+    <section class="coach" id="coach" hidden></section>
+    <div class="shortcuts" id="shortcuts"></div>
 
     <article class="budget-card" id="tileBudget" hidden></article>
 

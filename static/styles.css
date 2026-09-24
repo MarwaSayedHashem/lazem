@@ -329,7 +329,8 @@ body.menu-open { overflow: hidden; }
 }
 .today-icon .ic { width: 1.55rem; height: 1.55rem; }
 .today-greet-wrap { min-width: 0; }
-.today-greet { margin: 0; font-family: var(--display); font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+.today-greet { margin: 0; font-family: var(--display); font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; transition: color 200ms ease; }
+.today.cleared-flash .today-greet { color: var(--ok); }
 .today-date { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.8rem; }
 .today-stats {
   display: flex; margin: 0.15rem 0 0.9rem;
