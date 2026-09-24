@@ -1056,6 +1056,7 @@ function openSheet(html) {
   document.getElementById("sheet").hidden = false;
 }
 function closeSheet() {
+  if (state._outlookResolve) { state._outlookResolve(""); state._outlookResolve = null; }
   document.getElementById("sheet").hidden = true;
   document.getElementById("sheetCard").innerHTML = "";
 }
@@ -1729,11 +1730,28 @@ window.lazemImportItems = (items, source) => {
   showToast(added ? sub(t("connImported"), { n: added, src: source || "" }) : t("connNone"));
 };
 window.lazemConnectError = () => showToast(t("connErr"));
+window.lazemOutlookSetup = () => new Promise((resolve) => {
+  state._outlookResolve = resolve;
+  const uri = location.origin + location.pathname;
+  openSheet(
+    `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+    `<h3>${icon("calendar")} ${t("outlookTitle")}</h3>` +
+    `<p class="sheet-sub">${t("outlookHint")}</p>` +
+    `<div class="sheet-link"><input id="msRedirect" readonly value="${escapeHtml(uri)}" /></div>` +
+    `<div class="sheet-link"><input id="msClient" placeholder="Application (client) ID" autocomplete="off" /></div>` +
+    `<div class="sheet-actions">` +
+    `<button class="sheet-btn" data-sheet="outlook-save">${t("outlookSave")}</button>` +
+    `<button class="sheet-btn ghost" data-sheet="close">${t("importCancel")}</button>` +
+    `</div>`
+  );
+});
 (() => {
   const cal = document.getElementById("connCalBtn");
   const cls = document.getElementById("connClassBtn");
+  const outlook = document.getElementById("connOutlookBtn");
   if (cal) cal.addEventListener("click", () => window.lazemConnect && window.lazemConnect.calendar && window.lazemConnect.calendar());
   if (cls) cls.addEventListener("click", () => window.lazemConnect && window.lazemConnect.classroom && window.lazemConnect.classroom());
+  if (outlook) outlook.addEventListener("click", () => window.lazemConnect && window.lazemConnect.outlook && window.lazemConnect.outlook());
 })();
 
 document.getElementById("shareBtn").addEventListener("click", () => {
@@ -1747,6 +1765,16 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
   if (!btn) return;
   const act = btn.dataset.sheet;
   if (act === "close") { closeSheet(); return; }
+  if (act === "outlook-save") {
+    const id = (document.getElementById("msClient")?.value || "").trim();
+    if (!id) { showToast(t("outlookNeedId")); return; }
+    localStorage.setItem("lazem.ms.client.v1", id);
+    const done = state._outlookResolve;
+    state._outlookResolve = null;
+    closeSheet();
+    if (done) done(id);
+    return;
+  }
   if (act === "snooze") {
     const task = state.tasks.find((x) => x.id === state._snoozeId);
     if (task) {

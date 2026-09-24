@@ -20,7 +20,13 @@ window.LAZEM_FIREBASE = {
 
 /* Google Calendar / Classroom "Connect" buttons.
    Paste your OAuth Web client ID here (…apps.googleusercontent.com).
-   While blank, the Connections section stays hidden. */
+   While blank, the Google buttons stay hidden. Outlook stays visible. */
 window.LAZEM_GOOGLE = {
+  clientId: "",
+};
+
+/* Outlook calendar. Leave blank to paste the Entra app client ID in the app.
+   Redirect URI to register: https://marwasayedhashem.github.io/lazem/ */
+window.LAZEM_MICROSOFT = {
   clientId: "",
 };

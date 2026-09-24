@@ -3,13 +3,22 @@
    Hidden until firebase-config.js has a Google OAuth clientId. */
 
 const CID = (window.LAZEM_GOOGLE && window.LAZEM_GOOGLE.clientId) || "";
+const MS_STORE = "lazem.ms.client.v1";
 const area = document.getElementById("connectArea");
 
-if (!CID) {
-  if (area) area.hidden = true;
-} else {
-  boot();
+function msClientId() {
+  return (window.LAZEM_MICROSOFT && window.LAZEM_MICROSOFT.clientId) || localStorage.getItem(MS_STORE) || "";
 }
+
+if (area) area.hidden = false;
+if (!CID) {
+  const gCal = document.getElementById("connCalBtn");
+  const gClass = document.getElementById("connClassBtn");
+  if (gCal) gCal.hidden = true;
+  if (gClass) gClass.hidden = true;
+}
+window.lazemConnect = { outlook: () => connectOutlook() };
+if (CID) boot();
 
 function loadGIS() {
   return new Promise((resolve, reject) => {
@@ -32,14 +41,11 @@ async function boot() {
   try {
     await loadGIS();
   } catch (e) {
-    if (area) area.hidden = true;
     return;
   }
   if (area) area.hidden = false;
-  window.lazemConnect = {
-    calendar: () => connect("calendar"),
-    classroom: () => connect("classroom"),
-  };
+  window.lazemConnect.calendar = () => connect("calendar");
+  window.lazemConnect.classroom = () => connect("classroom");
 }
 
 function getToken(scope) {
@@ -68,6 +74,68 @@ async function connect(kind) {
   } catch (e) {
     if (window.lazemConnectError) window.lazemConnectError();
   }
+}
+
+function mapOutlookEvent(ev) {
+  const start = ev.start || {};
+  const raw = String(start.dateTime || "");
+  const d = raw.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  let tm = null;
+  if (!ev.isAllDay && raw.length >= 16) tm = raw.slice(11, 16);
+  const title = (ev.subject || "Event").slice(0, 80);
+  const place = ev.location && ev.location.displayName;
+  return { t: title, r: title, c: classifyText(title), d, tm, pl: place || null };
+}
+
+async function loadMsal() {
+  const mod = await import("https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.27.0/+esm");
+  return mod.PublicClientApplication;
+}
+
+async function connectOutlook() {
+  let clientId = msClientId();
+  if (!clientId && window.lazemOutlookSetup) clientId = await window.lazemOutlookSetup();
+  if (!clientId) return;
+  try {
+    const PublicClientApplication = await loadMsal();
+    const app = new PublicClientApplication({
+      auth: {
+        clientId,
+        authority: "https://login.microsoftonline.com/common",
+        redirectUri: location.origin + location.pathname,
+      },
+      cache: { cacheLocation: "sessionStorage" },
+    });
+    await app.initialize();
+    const result = await app.loginPopup({ scopes: ["User.Read", "Calendars.Read"] });
+    const token = result && result.accessToken;
+    if (!token) throw new Error("no token");
+    const items = await fetchOutlook(token);
+    if (window.lazemImportItems) window.lazemImportItems(items, "Outlook");
+  } catch (e) {
+    if (window.lazemConnectError) window.lazemConnectError();
+  }
+}
+
+async function fetchOutlook(token) {
+  const start = new Date();
+  const end = new Date(start.getTime() + 60 * 86400000);
+  const url =
+    "https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=" +
+    encodeURIComponent(start.toISOString()) +
+    "&endDateTime=" +
+    encodeURIComponent(end.toISOString()) +
+    "&$select=subject,start,location,isAllDay&$orderby=start/dateTime&$top=50";
+  const r = await fetch(url, {
+    headers: {
+      Authorization: "Bearer " + token,
+      Prefer: 'outlook.timezone="Africa/Cairo"',
+    },
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error((data && data.error && data.error.message) || "graph");
+  return (data.value || []).map(mapOutlookEvent).filter(Boolean);
 }
 
 function classifyText(s) {
