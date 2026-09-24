@@ -16,6 +16,7 @@ class TaskOut(BaseModel):
     category: str
     bill_kind: Optional[str] = None
     amount: Optional[float] = None
+    currency: Optional[str] = None
     due: Optional[str] = None
     time: Optional[str] = None
     done: bool = False

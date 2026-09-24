@@ -231,6 +231,17 @@ function parsePlace(text) {
   return null;
 }
 
+function parseCurrency(text) {
+  const s = String(text || "");
+  const low = s.toLowerCase();
+  if (/usd|\$|dollars?/.test(low)) return "USD";
+  if (/eur|€|euros?/.test(low)) return "EUR";
+  if (/gbp|£/.test(low)) return "GBP";
+  if (/egp|\ble\b|جنيه|جنية/.test(low) || /ج\.?\s*م/.test(s) || /ج\b/.test(s)) return "EGP";
+  if (billKind(s)) return "EGP";
+  return null;
+}
+
 function parseTask(text) {
   const raw = (text || "").trim();
   if (!raw) throw new Error("empty");
@@ -238,21 +249,25 @@ function parseTask(text) {
   const kind = billKind(raw);
   const category = classify(raw);
   let due = parseDue(raw, todayIso);
+  const time = parseTime(raw.toLowerCase());
   if (category === "bill" && !due) {
     const y = Number(todayIso.slice(0, 4));
     const mo = Number(todayIso.slice(5, 7));
     due = `${y}-${String(mo).padStart(2, "0")}-${String(lastDayOfMonth(y, mo)).padStart(2, "0")}`;
   }
   const repeat = detectRepeat(raw);
-  if (repeat && !due) due = todayIso; // anchor recurring items so they can roll forward
+  if (repeat && !due) due = todayIso;
+  if (time && !due) due = todayIso;
+  const amount = parseAmount(raw);
   return {
     title: kind ? LEX.BILL_TITLES[kind] : raw.replace(/\s+/g, " ").slice(0, 80) || "Task",
     raw,
     category,
     bill_kind: kind,
-    amount: parseAmount(raw),
+    amount,
+    currency: amount != null ? parseCurrency(raw) : null,
     due,
-    time: parseTime(raw.toLowerCase()),
+    time,
     repeat,
     place: parsePlace(raw),
   };

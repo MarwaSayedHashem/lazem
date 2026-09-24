@@ -122,17 +122,17 @@
       </div>
     </section>
 
-    <section class="interview" id="interview" hidden></section>
-    <section class="coach" id="coach" hidden></section>
-
     <form class="composer" id="composer">
       <label class="sr" for="note" data-i18n="noteLabel">Add a task</label>
       <input id="note" name="note" autocomplete="off" maxlength="240"
              placeholder="electricity 5 Oct 850 EGP" />
       <button type="button" class="mic-btn" id="micBtn" aria-label="Voice input" hidden><i data-ic="mic"></i></button>
-      <button type="submit"><i data-ic="plus"></i><span data-i18n="add">Parse</span></button>
+      <button type="submit"><i data-ic="plus"></i><span data-i18n="add">Add</span></button>
     </form>
     <p class="hint" data-i18n="hint">Examples: electricity 5 Oct 850 EGP · medicine 9pm · buy milk</p>
+
+    <section class="interview" id="interview" hidden></section>
+    <section class="coach" id="coach" hidden></section>
     <div class="related" id="related" hidden></div>
     <div class="shortcuts" id="shortcuts"></div>
 
@@ -154,6 +154,11 @@
       <button type="button" data-filter="errand"><i data-ic="errand"></i><span data-i18n="filterErrand">Errands</span></button>
       <button type="button" data-filter="done"><i data-ic="check"></i><span data-i18n="filterDone">Done</span></button>
     </nav>
+
+    <div class="sample-banner" id="sampleBanner" hidden>
+      <p id="sampleText"></p>
+      <button type="button" id="clearSamples"></button>
+    </div>
 
     <section id="overdue" class="stack"></section>
     <div class="list-head" id="listHead" hidden>

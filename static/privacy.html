@@ -10,10 +10,11 @@
   <div class="page">
     <p class="eyebrow">Lazem</p>
     <h1>Privacy</h1>
-    <p class="tag">Lazem is local-first. There is no account and no server-side inbox.</p>
-    <p>Notes, bills, medication times, and your profile answers are stored only in this device’s browser (localStorage). They are not uploaded to Marwa Hashem, GitHub, or a Lazem backend.</p>
-    <p>Weather and USD→EGP figures are requested from public APIs (Open-Meteo and open.er-api.com) when you open the app. Those providers see a normal HTTPS request from your network. The app does not send your task list with those requests.</p>
-    <p>If you wrap Lazem as a native app, the same rules apply: data stays on the phone unless you back the phone up yourself.</p>
+    <p class="tag">Private by default. Your tasks stay on this device unless you choose to sign in.</p>
+    <p>Signed out, notes, bills, medication times, and your answers live only in this browser (localStorage, and photos in IndexedDB). They are not uploaded.</p>
+    <p>Sign in with Google is optional. If you do, tasks sync to your own Firebase database so they follow you across devices. Security rules allow only that signed-in account to read them.</p>
+    <p>Weather and USD→EGP are requested from public APIs (Open-Meteo and open.er-api.com) when you open the app. Those providers see a normal HTTPS request. The app does not send your task list with those requests.</p>
+    <p>Google Calendar and Classroom connect only if you tap them, and only to pull events and assignments you choose to import.</p>
     <p><a href="./">Back to Lazem</a></p>
     <footer>Marwa Hashem — Cairo. Contact: Marwa.abdelnaby.hashem@gmail.com</footer>
   </div>

@@ -26,6 +26,12 @@ def test_medicine_tonight():
     task = parse_task("دوا ضغط 9pm", today=date(2026, 9, 18))
     assert task["category"] == "medicine"
     assert task["time"] == "21:00"
+    assert task["due"] == "2026-09-18"
+
+
+def test_currency_follows_the_words():
+    assert parse_task("rent 1 Oct 200 USD", today=date(2026, 9, 18))["currency"] == "USD"
+    assert parse_task("كهربا 5 أكتوبر 850 جنيه", today=date(2026, 9, 18))["currency"] == "EGP"
 
 
 def test_errand_grocery():

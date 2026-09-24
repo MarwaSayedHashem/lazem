@@ -165,6 +165,21 @@ def _title(text: str, bill_kind: Optional[str]) -> str:
     return cleaned[:80] or "Task"
 
 
+def parse_currency(text: str) -> Optional[str]:
+    low = text.lower()
+    if re.search(r"usd|\$|dollars?", low):
+        return "USD"
+    if re.search(r"eur|€|euros?", low):
+        return "EUR"
+    if re.search(r"gbp|£", low):
+        return "GBP"
+    if re.search(r"egp|\ble\b|جنيه|جنية", low) or re.search(r"ج\.?\s*م|ج\b", text):
+        return "EGP"
+    if _bill_kind(text):
+        return "EGP"
+    return None
+
+
 def parse_task(text: str, today: Optional[date] = None) -> dict:
     raw = (text or "").strip()
     if not raw:
@@ -173,15 +188,20 @@ def parse_task(text: str, today: Optional[date] = None) -> dict:
     bill_kind = _bill_kind(raw)
     category = classify(raw)
     due = parse_due(raw, today)
+    when = parse_time(raw.lower())
     if category == "bill" and not due:
         nxt = date(today.year + (today.month == 12), (today.month % 12) + 1, 1)
         due = (nxt - timedelta(days=1)).isoformat()
+    if when and not due:
+        due = today.isoformat()
+    amount = parse_amount(raw)
     return {
         "title": _title(raw, bill_kind),
         "raw": raw,
         "category": category,
         "bill_kind": bill_kind,
-        "amount": parse_amount(raw),
+        "amount": amount,
+        "currency": parse_currency(raw) if amount is not None else None,
         "due": due,
-        "time": parse_time(raw.lower()),
+        "time": when,
     }

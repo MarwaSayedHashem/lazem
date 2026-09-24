@@ -64,7 +64,8 @@ function buildICS(tasks) {
       lines.push("DTSTART;VALUE=DATE:" + ymd);
       lines.push("DTEND;VALUE=DATE:" + plusDays(task.due, 1).replace(/-/g, ""));
     }
-    const summary = displayTitle(task) + (task.amount ? ` (${task.amount} EGP)` : "");
+    const money = moneyText(task);
+    const summary = displayTitle(task) + (money ? ` (${money})` : "");
     lines.push("SUMMARY:" + icsEscape(summary));
     if (task.note && task.note.trim()) lines.push("DESCRIPTION:" + icsEscape(task.note.trim()));
     lines.push("END:VEVENT");
@@ -412,7 +413,7 @@ function showReminder(task, du) {
   const parts = [];
   if (advance) parts.push(sub(t("dueInDays"), { n: du }));
   if (task.time) parts.push(task.time);
-  if (task.amount) parts.push(`${task.amount} EGP`);
+  if (task.amount) parts.push(moneyText(task));
   parts.push(t(task.category));
   const body = parts.filter(Boolean).join(" · ");
   const opts = { body, tag: key, icon: "icons/icon-192.png", badge: "icons/icon-192.png", lang: state.lang };
@@ -1150,14 +1151,46 @@ function icsToShareItem(ev) {
   return { t: title, r: ev.summary || title, c: classify(title), d, tm, a: parseAmount(ev.summary || "") || null, pl: ev.location || null };
 }
 
+function sampleBillDue() {
+  const today = todayISO();
+  const [y, m, d] = today.split("-").map(Number);
+  if (d < 5) return `${y}-${String(m).padStart(2, "0")}-05`;
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  return `${ny}-${String(nm).padStart(2, "0")}-05`;
+}
+
+const SAMPLES_STORE = "lazem.samples.v1";
 function seedIfEmpty() {
   if (state.tasks.length) return;
+  try { if (localStorage.getItem(SAMPLES_STORE)) return; } catch {}
   state.tasks = [
-    { id: uid(), title: "Electricity", raw: "electricity 5 Oct 850 EGP", category: "bill", bill_kind: "electricity", amount: 850, due: "2026-10-05", done: false },
-    { id: uid(), title: "blood pressure medicine 9pm", raw: "blood pressure medicine 9pm", category: "medicine", time: "21:00", due: todayISO(), done: false },
-    { id: uid(), title: "buy milk and bread", raw: "buy milk and bread", category: "errand", due: todayISO(), done: false },
+    { id: uid(), title: "Electricity", raw: "electricity 5 Oct 850 EGP", category: "bill", bill_kind: "electricity", amount: 850, currency: "EGP", due: sampleBillDue(), done: false, sample: true },
+    { id: uid(), title: "blood pressure medicine 9pm", raw: "blood pressure medicine 9pm", category: "medicine", time: "21:00", due: todayISO(), done: false, sample: true },
+    { id: uid(), title: "buy milk and bread", raw: "buy milk and bread", category: "errand", due: todayISO(), done: false, sample: true },
   ];
+  try { localStorage.setItem(SAMPLES_STORE, "shown"); } catch {}
   save();
+}
+
+function clearSamples() {
+  state.tasks = state.tasks.filter((x) => !x.sample);
+  try { localStorage.setItem(SAMPLES_STORE, "cleared"); } catch {}
+  save();
+  render();
+  refreshCoach();
+}
+
+function renderSampleBanner() {
+  const banner = document.getElementById("sampleBanner");
+  if (!banner) return;
+  const has = state.tasks.some((x) => x.sample);
+  banner.hidden = !has;
+  if (!has) return;
+  const p = document.getElementById("sampleText");
+  const b = document.getElementById("clearSamples");
+  if (p) p.textContent = t("samples");
+  if (b) b.textContent = t("clearSamples");
 }
 
 function isOverdue(task) {
@@ -1175,7 +1208,29 @@ function visible(task) {
 function matchesSearch(task) {
   if (!state.search) return true;
   const n = state.search.toLowerCase();
-  return (displayTitle(task) + " " + (task.raw || "") + " " + t(task.category)).toLowerCase().includes(n);
+  return (displayTitle(task) + " " + (task.raw || "") + " " + (task.note || "") + " " + (task.place || "") + " " + t(task.category)).toLowerCase().includes(n);
+}
+
+const CATEGORIES = ["bill", "medicine", "health", "school", "work", "errand", "note"];
+const CURRENCIES = ["EGP", "USD", "EUR", "GBP"];
+
+function formatDue(iso) {
+  if (!iso) return "";
+  const today = todayISO();
+  if (iso === today) return t("resToday");
+  if (iso === plusDays(today, 1)) return t("resTomorrow");
+  const loc = state.lang === "ar" ? "ar-EG" : state.lang === "zh" ? "zh-CN" : state.lang;
+  try {
+    return new Date(iso + "T00:00:00").toLocaleDateString(loc, { day: "numeric", month: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+function moneyText(task) {
+  if (task.amount == null || task.amount === "") return "";
+  const cur = task.currency || (task.category === "bill" || task.bill_kind ? "EGP" : "");
+  return cur ? `${task.amount} ${cur}` : String(task.amount);
 }
 
 function displayTitle(task) {
@@ -1187,7 +1242,11 @@ function displayTitle(task) {
 }
 
 function emptyBox(msg) {
-  return `<div class="empty">${icon("inbox")}${escapeHtml(msg)}</div>`;
+  if (state.search) return `<div class="empty">${icon("search")}${escapeHtml(msg)}</div>`;
+  const examples = ["ex1", "ex2", "ex3"]
+    .map((k) => `<button type="button" class="example" data-example="${escapeHtml(t(k))}">${escapeHtml(t(k))}</button>`)
+    .join("");
+  return `<div class="empty">${icon("inbox")}<p>${escapeHtml(msg)}</p><div class="examples">${examples}</div></div>`;
 }
 
 function render() {
@@ -1196,6 +1255,7 @@ function render() {
   const head = document.getElementById("listHead");
   const loc = state.lang === "ar" ? "ar-EG" : state.lang;
   renderAgenda();
+  renderSampleBanner();
   let items = state.tasks.filter(visible).filter(matchesSearch);
   items = sortItems(items);
 
@@ -1243,6 +1303,7 @@ function cardHTML(task) {
   const subDone = subs.filter((s) => s.done).length;
   const cls = ["card"];
   if (task.category) cls.push(task.category);
+  if (state.justAdded === task.id) cls.push("fresh");
   if (overdue) cls.push("overdue");
   if (task.done) cls.push("done");
   if (task.pinned) cls.push("pinned");
@@ -1250,9 +1311,9 @@ function cardHTML(task) {
   const catIcon = icon(CATEGORY_ICON[task.category] || "note");
 
   const bits = [];
-  if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(task.due)}</span>`);
+  if (task.due) bits.push(`<span>${overdue ? t("overdue") : t("due")}: ${escapeHtml(formatDue(task.due))}</span>`);
   if (task.time) bits.push(`<span>${escapeHtml(task.time)}</span>`);
-  if (task.amount) bits.push(`<span class="amount">${escapeHtml(String(task.amount))} EGP</span>`);
+  if (task.amount) bits.push(`<span class="amount">${escapeHtml(moneyText(task))}</span>`);
   const anom = anomalyPct(task);
   if (anom) bits.push(`<span class="anomaly-flag">${icon("alert")} ${sub(t("anomaly"), { pct: anom })}</span>`);
   if (task.installTotal) {
@@ -1312,6 +1373,7 @@ function detailsHTML(task, subs) {
       `</div></div>`
     : "";
   return `<div class="details">
+    ${editHTML(task)}
     <div>
       <p class="det-h">${icon("clockplus")} ${t("reschedule")}</p>
       <div class="resched-row">
@@ -1346,6 +1408,21 @@ function detailsHTML(task, subs) {
   </div>`;
 }
 
+function editHTML(task) {
+  const cats = CATEGORIES.map((c) => `<option value="${c}"${task.category === c ? " selected" : ""}>${escapeHtml(t(c))}</option>`).join("");
+  const curs = [`<option value="">${escapeHtml(t("curNone"))}</option>`]
+    .concat(CURRENCIES.map((c) => `<option value="${c}"${task.currency === c ? " selected" : ""}>${c}</option>`))
+    .join("");
+  return `<div class="edit-grid">
+    <label class="edit-span">${t("editTitle")}<input class="edit-title" maxlength="80" value="${escapeHtml(displayTitle(task))}" /></label>
+    <label>${t("editCategory")}<select class="edit-cat">${cats}</select></label>
+    <label>${t("editDue")}<input class="edit-due" type="date" value="${escapeHtml(task.due || "")}" /></label>
+    <label>${t("editTime")}<input class="edit-time" type="time" value="${escapeHtml(task.time || "")}" /></label>
+    <label>${t("editAmount")}<input class="edit-amount" type="number" inputmode="decimal" min="0" step="any" value="${task.amount != null ? escapeHtml(String(task.amount)) : ""}" /></label>
+    <label>${t("editCurrency")}<select class="edit-cur">${curs}</select></label>
+  </div>`;
+}
+
 function mapsUrl(place) {
   return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(place);
 }
@@ -1362,6 +1439,7 @@ async function addTask(text) {
   const parsed = parseTask(text);
   const task = { id: uid(), done: false, ...parsed };
   state.tasks.unshift(task);
+  state.justAdded = task.id;
   save();
   render();
   refreshCoach();
@@ -1369,6 +1447,8 @@ async function addTask(text) {
   showRelated(task);
   const anom = anomalyPct(task);
   if (anom) showToast(sub(t("anomalyToast"), { title: displayTitle(task), pct: anom }));
+  else showToast(t("added"));
+  setTimeout(() => { if (state.justAdded === task.id) state.justAdded = null; }, 700);
 }
 
 document.getElementById("composer").addEventListener("submit", async (e) => {
@@ -1400,6 +1480,13 @@ document.getElementById("agenda").addEventListener("click", (e) => {
   render();
 });
 
+document.getElementById("clearSamples").addEventListener("click", clearSamples);
+document.getElementById("list").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-example]");
+  if (!b || !b.dataset.example) return;
+  try { await addTask(b.dataset.example); } catch {}
+});
+
 document.getElementById("clearDoneBtn").addEventListener("click", () => {
   const before = state.tasks.length;
   const snap = JSON.stringify(state.tasks);
@@ -1425,15 +1512,45 @@ document.getElementById("toastUndo").addEventListener("click", () => {
 
 /* Save note text as it's typed (no re-render, keeps focus) */
 document.addEventListener("input", (e) => {
-  const el = e.target.closest && e.target.closest(".note-input, .place-input");
+  const el = e.target.closest && e.target.closest(".note-input, .place-input, .edit-title");
   if (!el) return;
   const card = el.closest("[data-id]");
   if (!card) return;
   const task = state.tasks.find((x) => x.id === card.dataset.id);
   if (!task) return;
+  task.sample = false;
   if (el.classList.contains("note-input")) task.note = el.value;
-  else task.place = el.value;
+  else if (el.classList.contains("place-input")) task.place = el.value;
+  else {
+    task.title = el.value.slice(0, 80);
+    task.bill_kind = null;
+    const h = card.querySelector(".body h2");
+    if (h) h.textContent = task.title;
+  }
   save();
+  renderSampleBanner();
+});
+
+document.addEventListener("change", (e) => {
+  const el = e.target.closest && e.target.closest(".edit-cat, .edit-due, .edit-time, .edit-amount, .edit-cur");
+  if (!el) return;
+  const card = el.closest("[data-id]");
+  if (!card) return;
+  const task = state.tasks.find((x) => x.id === card.dataset.id);
+  if (!task) return;
+  if (el.classList.contains("edit-cat")) task.category = el.value;
+  else if (el.classList.contains("edit-due")) task.due = el.value || null;
+  else if (el.classList.contains("edit-time")) task.time = el.value || null;
+  else if (el.classList.contains("edit-amount")) {
+    const n = el.value === "" ? null : Number(el.value);
+    task.amount = n != null && !Number.isNaN(n) ? n : null;
+    if (task.amount != null && !task.currency && task.category === "bill") task.currency = "EGP";
+  } else if (el.classList.contains("edit-cur")) task.currency = el.value || null;
+  task.sample = false;
+  state.expanded.add(task.id);
+  save();
+  render();
+  scheduleReminders();
 });
 
 /* Install-to-home-screen prompt */
@@ -1658,7 +1775,7 @@ document.body.addEventListener("click", (e) => {
     return;
   }
 
-  const removeSnapshot = act === "remove" ? JSON.stringify(state.tasks) : null;
+  const undoSnapshotFor = act === "remove" || act === "done" ? JSON.stringify(state.tasks) : null;
 
   if (act === "done") {
     task.done = true;
@@ -1696,7 +1813,8 @@ document.body.addEventListener("click", (e) => {
   render();
   refreshCoach();
   scheduleReminders();
-  if (act === "remove") showToast(t("removed"), removeSnapshot);
+  if (act === "remove") showToast(t("removed"), undoSnapshotFor);
+  if (act === "done") showToast(t("markedDone"), undoSnapshotFor);
 });
 
 /* Add a checklist item with Enter */
@@ -1917,6 +2035,7 @@ function renderInterview() {
       .map(([v, k]) => `<button type="button" data-q="choice" data-v="${v}">${t(k)}</button>`)
       .join("")}</div>`;
   }
+  if (q.type !== "text") body += `<p class="q-skip-row"><button type="button" class="skip" data-q="skip">${t("q_skip")}</button></p>`;
   root.innerHTML = body;
 }
 
