@@ -4,7 +4,7 @@
 
 const CID = (window.LAZEM_GOOGLE && window.LAZEM_GOOGLE.clientId) || "";
 const MS_STORE = "lazem.ms.client.v1";
-const area = document.getElementById("connectArea");
+const area = document.getElementById("authArea");
 
 function msClientId() {
   return (window.LAZEM_MICROSOFT && window.LAZEM_MICROSOFT.clientId) || localStorage.getItem(MS_STORE) || "";
@@ -12,9 +12,7 @@ function msClientId() {
 
 if (area) area.hidden = false;
 if (!CID) {
-  const gCal = document.getElementById("connCalBtn");
   const gClass = document.getElementById("connClassBtn");
-  if (gCal) gCal.hidden = true;
   if (gClass) gClass.hidden = true;
 }
 window.lazemConnect = { outlook: () => connectOutlook() };
@@ -117,6 +115,7 @@ async function connectOutlook() {
     const result = await app.loginPopup({ scopes: ["User.Read", "Calendars.Read"] });
     const token = result && result.accessToken;
     if (!token) throw new Error("no token");
+    await rememberOutlook(token);
     if (window.lazemWantsMeetings && !window.lazemWantsMeetings()) {
       if (window.lazemSignedIn) window.lazemSignedIn();
       return true;
@@ -129,6 +128,28 @@ async function connectOutlook() {
     return false;
   }
 }
+
+async function rememberOutlook(token) {
+  try {
+    const r = await fetch("https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    const me = await r.json();
+    const label = me.mail || me.userPrincipalName || me.displayName || "Outlook";
+    if (window.lazemAccountConnected) window.lazemAccountConnected("outlook", label);
+  } catch (e) {
+    if (window.lazemAccountConnected) window.lazemAccountConnected("outlook", "Outlook");
+  }
+}
+
+window.lazemPullGoogleCalendar = async (token) => {
+  try {
+    const items = await fetchCalendar(token);
+    if (window.lazemImportItems) window.lazemImportItems(items, "Google Calendar");
+  } catch (e) {
+    if (window.lazemConnectError) window.lazemConnectError();
+  }
+};
 
 async function fetchOutlook(token) {
   const start = new Date();

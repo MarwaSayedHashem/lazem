@@ -34,9 +34,13 @@
         <p class="drawer-title"><i data-ic="settings"></i><span data-i18n="menuTitle">Settings</span></p>
         <a class="data-btn" href="help.html" style="margin-top:0.3rem"><i data-ic="help"></i><span data-i18n="guide">How to use</span></a>
 
-        <div id="authArea" hidden>
-          <p class="drawer-h"><i data-ic="user"></i><span data-i18n="menuAccount">Account</span></p>
-          <button type="button" class="data-btn" id="signInBtn"><i data-ic="login"></i><span data-i18n="signInGoogle">Sign in with Google</span></button>
+        <div id="authArea">
+          <p class="drawer-h"><i data-ic="user"></i><span data-i18n="signInWith">Sign in with</span></p>
+          <div id="signChoices" class="sign-choices">
+            <button type="button" class="data-btn" id="connOutlookBtn"><i data-ic="calendar"></i><span data-i18n="signOutlook">Outlook</span></button>
+            <button type="button" class="data-btn" id="signInBtn"><i data-ic="login"></i><span data-i18n="signGoogle">Google</span></button>
+            <button type="button" class="data-btn" id="signPhoneBtn"><i data-ic="user"></i><span data-i18n="signPhone">Mobile number</span></button>
+          </div>
           <div id="signedIn" hidden>
             <p class="acct-line"><i data-ic="cloud"></i> <span data-i18n="signedInAs">Signed in</span> · <b id="acctEmail"></b></p>
             <button type="button" class="data-btn" id="signOutBtn"><i data-ic="logout"></i><span data-i18n="signOut">Sign out</span></button>
@@ -50,7 +54,13 @@
               <button type="button" class="data-btn" id="houseLeaveBtn" hidden><i data-ic="logout"></i><span data-i18n="houseLeave">Leave shared list</span></button>
             </div>
           </div>
-          <p class="remind-note" data-i18n="syncNote">Sign in to sync your tasks across your devices.</p>
+          <div class="meetings-switch" id="calendarSwitchRow">
+            <span id="meetingsLabel" data-i18n="addCalendar">Add email calendar</span>
+            <button type="button" class="switch" id="meetingsToggle" role="switch" aria-checked="false" aria-labelledby="meetingsLabel"></button>
+          </div>
+          <p class="remind-note" id="meetingsNote" data-i18n="calendarOff">Off. Meetings stay in your inbox.</p>
+          <button type="button" class="data-btn" id="connCalBtn" hidden><i data-ic="calendar"></i><span data-i18n="connCalendar">Google Calendar</span></button>
+          <button type="button" class="data-btn" id="connClassBtn" hidden><i data-ic="school"></i><span data-i18n="connClassroom">Google Classroom</span></button>
         </div>
 
         <p class="drawer-h"><i data-ic="palette"></i><span data-i18n="menuTheme">Theme</span></p>
@@ -76,20 +86,6 @@
         <p class="drawer-h"><i data-ic="bell"></i><span data-i18n="menuReminders">Reminders</span></p>
         <button type="button" class="data-btn" id="remindBtn"><i data-ic="bell"></i><span id="remindLabel" data-i18n="enableReminders">Turn on reminders</span></button>
         <p class="remind-note" id="remindNote" data-i18n="remindNote">Then it's automatic — reminders at the time you set, and the day before anything's due. Works while Lazem is open in the background.</p>
-
-        <div id="connectArea" hidden>
-          <p class="drawer-h"><i data-ic="cloud"></i><span data-i18n="menuConnect">Connections</span></p>
-          <div class="connect-list">
-            <button type="button" class="data-btn" id="connOutlookBtn"><i data-ic="calendar"></i><span data-i18n="connOutlook">Outlook</span></button>
-            <button type="button" class="data-btn" id="connCalBtn"><i data-ic="calendar"></i><span data-i18n="connCalendar">Google Calendar</span></button>
-            <button type="button" class="data-btn" id="connClassBtn"><i data-ic="school"></i><span data-i18n="connClassroom">Google Classroom</span></button>
-          </div>
-          <div class="meetings-switch">
-            <span id="meetingsLabel" data-i18n="showMeetings">Show meetings on Lazem</span>
-            <button type="button" class="switch" id="meetingsToggle" role="switch" aria-checked="false" aria-labelledby="meetingsLabel"></button>
-          </div>
-          <p class="remind-note" id="meetingsNote" data-i18n="meetingsOff">Sign in only. Meetings stay in the calendar.</p>
-        </div>
 
         <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuInstall">Installments & bills</span></p>
         <div class="data-actions">

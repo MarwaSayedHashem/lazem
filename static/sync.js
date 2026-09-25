@@ -4,13 +4,7 @@
 
 const cfg = (window.LAZEM_FIREBASE) || {};
 const enabled = !!(cfg.apiKey && cfg.projectId && cfg.appId);
-const authArea = document.getElementById("authArea");
-
-if (!enabled) {
-  if (authArea) authArea.hidden = true;
-} else {
-  bootstrap();
-}
+if (enabled) bootstrap();
 
 async function bootstrap() {
   const V = "https://www.gstatic.com/firebasejs/10.13.2";
@@ -28,11 +22,8 @@ async function bootstrap() {
     db = dbMod.getFirestore(app);
   } catch (e) {
     // Offline or blocked — stay local, hide the account UI.
-    if (authArea) authArea.hidden = true;
     return;
   }
-
-  if (authArea) authArea.hidden = false;
 
   let uid = null;
   let unsub = null;
@@ -122,8 +113,15 @@ async function bootstrap() {
   window.lazemSync = {
     signIn() {
       const provider = new authFns.GoogleAuthProvider();
-      authFns.signInWithPopup(auth, provider).catch(() => {
-        // popup blocked -> fall back to redirect
+      if (window.lazemWantsMeetings && window.lazemWantsMeetings()) {
+        provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
+      }
+      authFns.signInWithPopup(auth, provider).then((result) => {
+        const cred = authFns.GoogleAuthProvider.credentialFromResult(result);
+        if (cred && cred.accessToken && window.lazemWantsMeetings && window.lazemWantsMeetings() && window.lazemPullGoogleCalendar) {
+          window.lazemPullGoogleCalendar(cred.accessToken);
+        }
+      }).catch(() => {
         try { authFns.signInWithRedirect(auth, provider); } catch (e) {}
       });
     },

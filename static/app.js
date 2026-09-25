@@ -1738,16 +1738,40 @@ function wantsMeetings() {
   if (mode === "on" || mode === "off") return mode === "on";
   return localStorage.getItem("lazem.outlook.mode.v1") === "meetings";
 }
+const SIGN_METHOD = "lazem.signin.v1";
+const SIGN_PHONE = "lazem.phone.v1";
+const SIGN_LABEL = "lazem.signin.label.v1";
+function signMethod() {
+  return localStorage.getItem(SIGN_METHOD) || "";
+}
 function paintMeetingsToggle() {
   const btn = document.getElementById("meetingsToggle");
   const note = document.getElementById("meetingsNote");
-  const on = wantsMeetings();
+  const phone = signMethod() === "phone";
+  const on = !phone && wantsMeetings();
   if (btn) {
+    btn.disabled = phone;
     btn.classList.toggle("on", on);
     btn.setAttribute("aria-checked", on ? "true" : "false");
   }
-  if (note) note.textContent = t(on ? "meetingsOn" : "meetingsOff");
+  if (note) note.textContent = t(phone ? "calendarPhone" : on ? "calendarOn" : "calendarOff");
 }
+function paintSignIn(account) {
+  const choices = document.getElementById("signChoices");
+  const signedIn = document.getElementById("signedIn");
+  const email = document.getElementById("acctEmail");
+  const house = document.getElementById("householdBox");
+  if (choices) choices.hidden = !!account;
+  if (signedIn) signedIn.hidden = !account;
+  if (email) email.textContent = account ? account.label || "" : "";
+  if (house) house.hidden = !account || account.method !== "google";
+  paintMeetingsToggle();
+}
+window.lazemAccountConnected = (method, label) => {
+  localStorage.setItem(SIGN_METHOD, method);
+  if (label) localStorage.setItem(SIGN_LABEL, label);
+  paintSignIn({ method, label: label || localStorage.getItem(SIGN_LABEL) || "" });
+};
 window.lazemWantsMeetings = wantsMeetings;
 window.lazemSignedIn = () => showToast(t("signedIn"));
 window.lazemHideMeetings = () => {
@@ -1793,11 +1817,32 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
     if (window.lazemConnect && window.lazemConnect.outlook) window.lazemConnect.outlook();
   });
   const meetings = document.getElementById("meetingsToggle");
-  if (meetings) meetings.addEventListener("click", () => {
+  if (meetings) meetings.addEventListener("click", async () => {
+    if (signMethod() === "phone") return;
     const next = !wantsMeetings();
     localStorage.setItem(MEETINGS_MODE, next ? "on" : "off");
     paintMeetingsToggle();
-    if (!next) window.lazemHideMeetings();
+    if (!next) {
+      window.lazemHideMeetings();
+      return;
+    }
+    const method = signMethod();
+    if (method === "outlook" && window.lazemConnect && window.lazemConnect.outlook) await window.lazemConnect.outlook();
+    if (method === "google" && window.lazemSync && window.lazemSync.signIn) window.lazemSync.signIn();
+  });
+  const phoneBtn = document.getElementById("signPhoneBtn");
+  if (phoneBtn) phoneBtn.addEventListener("click", () => {
+    setMenu(false);
+    openSheet(
+      `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+      `<h3>${t("signPhoneTitle")}</h3>` +
+      `<p class="sheet-sub">${t("signPhoneHint")}</p>` +
+      `<div class="sheet-link"><input id="phoneInput" type="tel" inputmode="tel" autocomplete="tel" placeholder="01x xxx xxxx" /></div>` +
+      `<div class="sheet-actions">` +
+      `<button class="sheet-btn" data-sheet="phone-save">${t("signPhoneSave")}</button>` +
+      `<button class="sheet-btn ghost" data-sheet="close">${t("importCancel")}</button>` +
+      `</div>`
+    );
   });
 })();
 
@@ -1812,6 +1857,20 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
   if (!btn) return;
   const act = btn.dataset.sheet;
   if (act === "close") { closeSheet(); return; }
+  if (act === "phone-save") {
+    const raw = (document.getElementById("phoneInput")?.value || "").trim();
+    const digits = raw.replace(/[^\d+]/g, "");
+    if (digits.replace(/\D/g, "").length < 8) { showToast(t("signPhoneNeed")); return; }
+    localStorage.setItem(SIGN_METHOD, "phone");
+    localStorage.setItem(SIGN_PHONE, digits);
+    localStorage.setItem(SIGN_LABEL, digits);
+    localStorage.setItem(MEETINGS_MODE, "off");
+    window.lazemHideMeetings();
+    paintSignIn({ method: "phone", label: digits });
+    closeSheet();
+    setMenu(true);
+    return;
+  }
   if (act === "outlook-save") {
     const id = (document.getElementById("msClient")?.value || "").trim();
     if (!id) { showToast(t("outlookNeedId")); return; }
@@ -2446,24 +2505,39 @@ window.lazemApplyRemote = (data) => {
 window.lazemT = (key, params) => (params ? sub(t(key), params) : t(key));
 window.lazemToast = (msg) => showToast(msg);
 window.lazemAuthUI = (user) => {
-  const signInBtn = document.getElementById("signInBtn");
-  const signedIn = document.getElementById("signedIn");
-  const email = document.getElementById("acctEmail");
-  if (!signInBtn || !signedIn) return;
   if (user) {
-    signInBtn.hidden = true;
-    signedIn.hidden = false;
-    if (email) email.textContent = user.email || user.name || "";
-  } else {
-    signInBtn.hidden = false;
-    signedIn.hidden = true;
+    localStorage.setItem(SIGN_METHOD, "google");
+    const label = user.email || user.name || "Google";
+    localStorage.setItem(SIGN_LABEL, label);
+    paintSignIn({ method: "google", label });
+    return;
   }
+  const method = signMethod();
+  if (method === "phone" || method === "outlook") {
+    paintSignIn({ method, label: localStorage.getItem(SIGN_LABEL) || "" });
+    return;
+  }
+  paintSignIn(null);
 };
 (() => {
   const inBtn = document.getElementById("signInBtn");
   const outBtn = document.getElementById("signOutBtn");
-  if (inBtn) inBtn.addEventListener("click", () => window.lazemSync && window.lazemSync.signIn && window.lazemSync.signIn());
-  if (outBtn) outBtn.addEventListener("click", () => window.lazemSync && window.lazemSync.signOut && window.lazemSync.signOut());
+  if (inBtn) inBtn.addEventListener("click", () => {
+    localStorage.setItem(SIGN_METHOD, "google");
+    if (window.lazemSync && window.lazemSync.signIn) window.lazemSync.signIn();
+    else showToast(t("connErr"));
+  });
+  if (outBtn) outBtn.addEventListener("click", () => {
+    localStorage.removeItem(SIGN_METHOD);
+    localStorage.removeItem(SIGN_PHONE);
+    localStorage.removeItem(SIGN_LABEL);
+    if (window.lazemSync && window.lazemSync.signOut) window.lazemSync.signOut();
+    paintSignIn(null);
+  });
+  const method = signMethod();
+  if (method === "phone" || method === "outlook") {
+    paintSignIn({ method, label: localStorage.getItem(SIGN_LABEL) || "" });
+  }
 })();
 
 /* Insights panel toggle */

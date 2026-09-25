@@ -896,8 +896,10 @@ footer a { color: var(--accent); }
 .acct-line .ic { width: 1rem; height: 1rem; color: var(--accent); }
 .acct-line b { color: var(--ink); }
 .data-btn.on .ic { color: var(--accent); }
-.connect-list { display: flex; flex-direction: column; gap: 0.45rem; }
-.connect-list .data-btn { width: 100%; }
+.sign-choices { display: flex; flex-direction: column; gap: 0.45rem; }
+.sign-choices .data-btn { width: 100%; }
+.sign-choices .data-btn.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.switch[disabled] { opacity: 0.45; }
 .meetings-switch {
   display: flex;
   align-items: center;
