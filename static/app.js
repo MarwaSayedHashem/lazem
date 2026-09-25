@@ -1741,6 +1741,7 @@ function wantsMeetings() {
 const SIGN_METHOD = "lazem.signin.v1";
 const SIGN_PHONE = "lazem.phone.v1";
 const SIGN_LABEL = "lazem.signin.label.v1";
+const SIGNED_OUT = "lazem.signedout.v1";
 function signMethod() {
   return localStorage.getItem(SIGN_METHOD) || "";
 }
@@ -1779,6 +1780,7 @@ function paintSignIn(account) {
   paintMeetingsToggle();
 }
 window.lazemAccountConnected = (method, label) => {
+  localStorage.removeItem(SIGNED_OUT);
   localStorage.setItem(SIGN_METHOD, method);
   if (label) localStorage.setItem(SIGN_LABEL, label);
   paintSignIn({ method, label: label || localStorage.getItem(SIGN_LABEL) || "" });
@@ -1823,9 +1825,18 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
     if (window.lazemConnect && window.lazemConnect.calendar) window.lazemConnect.calendar();
   });
   if (cls) cls.addEventListener("click", () => window.lazemConnect && window.lazemConnect.classroom && window.lazemConnect.classroom());
-  if (outlook) outlook.addEventListener("click", () => {
+  if (outlook) outlook.addEventListener("click", async () => {
     remember("outlook")();
-    if (window.lazemConnect && window.lazemConnect.outlook) window.lazemConnect.outlook();
+    holdAuth = true;
+    clearSign();
+    paintSignIn(null);
+    try {
+      if (window.lazemSync && window.lazemSync.signOut) await window.lazemSync.signOut();
+      if (window.lazemConnect && window.lazemConnect.outlook) await window.lazemConnect.outlook();
+    } finally {
+      holdAuth = false;
+      if (signMethod() !== "outlook") paintSignIn(null);
+    }
   });
   const meetings = document.getElementById("meetingsToggle");
   if (meetings) meetings.addEventListener("click", async () => {
@@ -1841,7 +1852,7 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
     }
     const method = signMethod();
     if (method === "outlook" && window.lazemConnect && window.lazemConnect.outlook) await window.lazemConnect.outlook();
-    if (method === "google" && window.lazemSync && window.lazemSync.signIn) window.lazemSync.signIn();
+    if (method === "google" && window.lazemSync && window.lazemSync.pullCalendar) window.lazemSync.pullCalendar();
   });
   const phoneBtn = document.getElementById("signPhoneBtn");
   if (phoneBtn) phoneBtn.addEventListener("click", () => {
@@ -1874,6 +1885,7 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
     const raw = (document.getElementById("phoneInput")?.value || "").trim();
     const digits = raw.replace(/[^\d+]/g, "");
     if (digits.replace(/\D/g, "").length < 8) { showToast(t("signPhoneNeed")); return; }
+    localStorage.removeItem(SIGNED_OUT);
     localStorage.setItem(SIGN_METHOD, "phone");
     localStorage.setItem(SIGN_PHONE, digits);
     localStorage.setItem(SIGN_LABEL, digits);
@@ -2517,35 +2529,50 @@ window.lazemApplyRemote = (data) => {
 };
 window.lazemT = (key, params) => (params ? sub(t(key), params) : t(key));
 window.lazemToast = (msg) => showToast(msg);
+let holdAuth = false;
 window.lazemAuthUI = (user) => {
+  if (holdAuth) return;
+  if (user && localStorage.getItem(SIGNED_OUT)) return;
+  const method = signMethod();
+  if (method === "outlook" || method === "phone") {
+    paintSignIn({ method, label: localStorage.getItem(SIGN_LABEL) || "" });
+    return;
+  }
   if (user) {
-    localStorage.setItem(SIGN_METHOD, "google");
     const label = user.email || user.name || "Google";
+    localStorage.setItem(SIGN_METHOD, "google");
     localStorage.setItem(SIGN_LABEL, label);
     paintSignIn({ method: "google", label });
     return;
   }
-  const method = signMethod();
-  if (method === "phone" || method === "outlook") {
-    paintSignIn({ method, label: localStorage.getItem(SIGN_LABEL) || "" });
-    return;
-  }
   paintSignIn(null);
 };
+function clearSign() {
+  localStorage.removeItem(SIGN_METHOD);
+  localStorage.removeItem(SIGN_PHONE);
+  localStorage.removeItem(SIGN_LABEL);
+}
 (() => {
   const inBtn = document.getElementById("signInBtn");
   const outBtn = document.getElementById("signOutBtn");
   if (inBtn) inBtn.addEventListener("click", () => {
-    localStorage.setItem(SIGN_METHOD, "google");
+    localStorage.removeItem(SIGNED_OUT);
+    clearSign();
+    paintSignIn(null);
     if (window.lazemSync && window.lazemSync.signIn) window.lazemSync.signIn();
     else showToast(t("connErr"));
   });
-  if (outBtn) outBtn.addEventListener("click", () => {
-    localStorage.removeItem(SIGN_METHOD);
-    localStorage.removeItem(SIGN_PHONE);
-    localStorage.removeItem(SIGN_LABEL);
-    if (window.lazemSync && window.lazemSync.signOut) window.lazemSync.signOut();
+  if (outBtn) outBtn.addEventListener("click", async () => {
+    holdAuth = true;
+    localStorage.setItem(SIGNED_OUT, "1");
+    clearSign();
     paintSignIn(null);
+    try {
+      if (window.lazemSync && window.lazemSync.signOut) await window.lazemSync.signOut();
+    } finally {
+      holdAuth = false;
+      paintSignIn(null);
+    }
   });
   const method = signMethod();
   if (method === "phone" || method === "outlook") {

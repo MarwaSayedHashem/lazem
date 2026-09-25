@@ -113,28 +113,41 @@ async function bootstrap() {
     });
   }
 
+  function calendarToken(result) {
+    const cred = authFns.GoogleAuthProvider.credentialFromResult(result);
+    return (cred && cred.accessToken) || (result && result._tokenResponse && result._tokenResponse.oauthAccessToken) || "";
+  }
+
+  async function pullCalendar() {
+    const provider = new authFns.GoogleAuthProvider();
+    provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
+    provider.setCustomParameters({ include_granted_scopes: "true" });
+    try {
+      const result = await authFns.signInWithPopup(auth, provider);
+      const token = calendarToken(result);
+      if (token && window.lazemPullGoogleCalendar) {
+        await window.lazemPullGoogleCalendar(token);
+        return;
+      }
+      if (window.lazemCalendarStatus) window.lazemCalendarStatus(window.lazemT ? window.lazemT("calendarMiss") : "");
+    } catch (e) {
+      if (e && e.code === "auth/popup-closed-by-user") return;
+      if (window.lazemCalendarStatus) window.lazemCalendarStatus((e && e.message) || (window.lazemT ? window.lazemT("connErr") : ""));
+    }
+  }
+
   window.lazemSync = {
     signIn() {
       const provider = new authFns.GoogleAuthProvider();
-      const wantCal = window.lazemWantsMeetings && window.lazemWantsMeetings();
-      if (wantCal) {
-        provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
-        provider.setCustomParameters({ prompt: "consent", include_granted_scopes: "true" });
-      }
-      authFns.signInWithPopup(auth, provider).then((result) => {
-        if (!wantCal) return;
-        const cred = authFns.GoogleAuthProvider.credentialFromResult(result);
-        const token = (cred && cred.accessToken) || (result && result._tokenResponse && result._tokenResponse.oauthAccessToken);
-        if (token && window.lazemPullGoogleCalendar) {
-          window.lazemPullGoogleCalendar(token);
-          return;
-        }
-        if (window.lazemCalendarStatus) window.lazemCalendarStatus(window.lazemT ? window.lazemT("calendarMiss") : "");
+      return authFns.signInWithPopup(auth, provider).then(() => {
+        if (window.lazemWantsMeetings && window.lazemWantsMeetings()) return pullCalendar();
       }).catch((e) => {
-        if (window.lazemCalendarStatus) window.lazemCalendarStatus((e && e.message) || (window.lazemT ? window.lazemT("connErr") : ""));
+        if (e && e.code === "auth/popup-closed-by-user") return;
+        if (window.lazemToast) window.lazemToast((e && e.message) || (window.lazemT ? window.lazemT("connErr") : "Couldn't sign in"));
       });
     },
-    signOut() { authFns.signOut(auth).catch(() => {}); },
+    pullCalendar,
+    signOut() { return authFns.signOut(auth).catch(() => {}); },
     queuePush() {
       if (!uid) return;
       clearTimeout(pushTimer);
