@@ -899,15 +899,25 @@ footer a { color: var(--accent); }
 .sign-choices { display: flex; flex-direction: column; gap: 0.45rem; }
 .sign-choices .data-btn { width: 100%; }
 .sign-choices .data-btn.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
-.switch[disabled] { opacity: 0.45; }
-.meetings-switch {
+button.meetings-switch {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: 0.7rem;
-  font-size: 0.92rem;
+  padding: 0.7rem 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: start;
+  cursor: pointer;
 }
+button.meetings-switch:disabled { opacity: 0.45; cursor: default; }
+.meetings-switch.on .switch { background: var(--accent); border-color: var(--accent); }
+.meetings-switch.on .switch::after { inset-inline-start: auto; inset-inline-end: 0.12rem; background: var(--btn-fg); }
 .switch {
   flex: none;
   width: 2.6rem;
