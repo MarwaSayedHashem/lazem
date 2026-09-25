@@ -1754,8 +1754,19 @@ function paintMeetingsToggle() {
     btn.classList.toggle("on", on);
     btn.setAttribute("aria-checked", on ? "true" : "false");
   }
-  if (note) note.textContent = t(phone ? "calendarPhone" : on ? "calendarOn" : "calendarOff");
+  if (note && !note.dataset.stuck) note.textContent = t(phone ? "calendarPhone" : on ? "calendarOn" : "calendarOff");
 }
+window.lazemCalendarStatus = (msg) => {
+  const note = document.getElementById("meetingsNote");
+  if (!note) return;
+  note.dataset.stuck = "1";
+  note.textContent = msg || t("calendarMiss");
+};
+window.lazemCalendarClear = () => {
+  const note = document.getElementById("meetingsNote");
+  if (note) delete note.dataset.stuck;
+  paintMeetingsToggle();
+};
 function paintSignIn(account) {
   const choices = document.getElementById("signChoices");
   const signedIn = document.getElementById("signedIn");
@@ -1819,6 +1830,8 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
   const meetings = document.getElementById("meetingsToggle");
   if (meetings) meetings.addEventListener("click", async () => {
     if (signMethod() === "phone") return;
+    const note = document.getElementById("meetingsNote");
+    if (note) delete note.dataset.stuck;
     const next = !wantsMeetings();
     localStorage.setItem(MEETINGS_MODE, next ? "on" : "off");
     paintMeetingsToggle();

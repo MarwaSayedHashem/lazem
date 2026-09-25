@@ -1048,7 +1048,7 @@ button.meetings-switch:disabled { opacity: 0.45; cursor: default; }
 
 /* ---------- Toast (undo) ---------- */
 .toast {
-  position: fixed; inset-inline: 0; bottom: 1.1rem; z-index: 85;
+  position: fixed; inset-inline: 0; bottom: 1.1rem; z-index: 200;
   margin: 0 auto; width: max-content; max-width: calc(100% - 2rem);
   display: flex; align-items: center; gap: 1rem;
   background: var(--ink); color: var(--paper);

@@ -145,9 +145,12 @@ async function rememberOutlook(token) {
 window.lazemPullGoogleCalendar = async (token) => {
   try {
     const items = await fetchCalendar(token);
+    if (window.lazemCalendarClear) window.lazemCalendarClear();
     if (window.lazemImportItems) window.lazemImportItems(items, "Google Calendar");
   } catch (e) {
-    if (window.lazemConnectError) window.lazemConnectError(e && e.message);
+    const msg = (e && e.message) || "";
+    if (window.lazemCalendarStatus) window.lazemCalendarStatus(msg);
+    if (window.lazemConnectError) window.lazemConnectError(msg);
   }
 };
 

@@ -106,7 +106,10 @@ async function bootstrap() {
     } catch (e) {}
     unsub = dbFns.onSnapshot(ref(), (snap) => {
       if (!snap.exists() || snap.metadata.hasPendingWrites) return;
-      if (window.lazemApplyRemote) window.lazemApplyRemote(snap.data());
+      const cloud = snap.data();
+      const local = window.lazemGetSyncData ? window.lazemGetSyncData() : { updatedAt: 0 };
+      if ((cloud.updatedAt || 0) < (local.updatedAt || 0)) return;
+      if (window.lazemApplyRemote) window.lazemApplyRemote(cloud);
     });
   }
 
@@ -121,13 +124,14 @@ async function bootstrap() {
       authFns.signInWithPopup(auth, provider).then((result) => {
         if (!wantCal) return;
         const cred = authFns.GoogleAuthProvider.credentialFromResult(result);
-        if (cred && cred.accessToken && window.lazemPullGoogleCalendar) {
-          window.lazemPullGoogleCalendar(cred.accessToken);
+        const token = (cred && cred.accessToken) || (result && result._tokenResponse && result._tokenResponse.oauthAccessToken);
+        if (token && window.lazemPullGoogleCalendar) {
+          window.lazemPullGoogleCalendar(token);
           return;
         }
-        if (window.lazemConnectError) window.lazemConnectError(window.lazemT ? window.lazemT("calendarMiss") : "");
-      }).catch(() => {
-        try { authFns.signInWithRedirect(auth, provider); } catch (e) {}
+        if (window.lazemCalendarStatus) window.lazemCalendarStatus(window.lazemT ? window.lazemT("calendarMiss") : "");
+      }).catch((e) => {
+        if (window.lazemCalendarStatus) window.lazemCalendarStatus((e && e.message) || (window.lazemT ? window.lazemT("connErr") : ""));
       });
     },
     signOut() { authFns.signOut(auth).catch(() => {}); },
