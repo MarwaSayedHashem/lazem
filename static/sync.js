@@ -113,14 +113,19 @@ async function bootstrap() {
   window.lazemSync = {
     signIn() {
       const provider = new authFns.GoogleAuthProvider();
-      if (window.lazemWantsMeetings && window.lazemWantsMeetings()) {
+      const wantCal = window.lazemWantsMeetings && window.lazemWantsMeetings();
+      if (wantCal) {
         provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
+        provider.setCustomParameters({ prompt: "consent", include_granted_scopes: "true" });
       }
       authFns.signInWithPopup(auth, provider).then((result) => {
+        if (!wantCal) return;
         const cred = authFns.GoogleAuthProvider.credentialFromResult(result);
-        if (cred && cred.accessToken && window.lazemWantsMeetings && window.lazemWantsMeetings() && window.lazemPullGoogleCalendar) {
+        if (cred && cred.accessToken && window.lazemPullGoogleCalendar) {
           window.lazemPullGoogleCalendar(cred.accessToken);
+          return;
         }
+        if (window.lazemConnectError) window.lazemConnectError(window.lazemT ? window.lazemT("calendarMiss") : "");
       }).catch(() => {
         try { authFns.signInWithRedirect(auth, provider); } catch (e) {}
       });

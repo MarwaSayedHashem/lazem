@@ -147,7 +147,7 @@ window.lazemPullGoogleCalendar = async (token) => {
     const items = await fetchCalendar(token);
     if (window.lazemImportItems) window.lazemImportItems(items, "Google Calendar");
   } catch (e) {
-    if (window.lazemConnectError) window.lazemConnectError();
+    if (window.lazemConnectError) window.lazemConnectError(e && e.message);
   }
 };
 
@@ -175,28 +175,67 @@ function classifyText(s) {
   try { return window.classify ? window.classify(s || "") : "note"; } catch (e) { return "note"; }
 }
 
-async function fetchCalendar(token) {
-  const timeMin = new Date().toISOString();
-  const url =
-    "https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=" +
-    encodeURIComponent(timeMin) + "&maxResults=50&singleEvents=true&orderBy=startTime";
+function cairoDayStart() {
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+  const utc = new Date(day + "T00:00:00Z");
+  const cairo = new Date(utc.toLocaleString("en-US", { timeZone: "Africa/Cairo" }));
+  const asUtc = new Date(utc.toLocaleString("en-US", { timeZone: "UTC" }));
+  return new Date(utc.getTime() - (cairo.getTime() - asUtc.getTime()));
+}
+
+function mapGoogleEvent(ev) {
+  const start = ev.start || {};
+  let d = null, tm = null;
+  if (start.date) {
+    d = start.date;
+  } else if (start.dateTime) {
+    const dt = new Date(start.dateTime);
+    d = dt.toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+    tm = dt.toLocaleTimeString("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  }
+  if (!d) return null;
+  return { t: (ev.summary || "Event").slice(0, 80), r: ev.summary || "", c: classifyText(ev.summary || ""), d, tm, pl: ev.location || null };
+}
+
+async function googleGet(token, url) {
   const r = await fetch(url, { headers: { Authorization: "Bearer " + token } });
   const data = await r.json();
-  return (data.items || [])
-    .map((ev) => {
-      const start = ev.start || {};
-      let d = null, tm = null;
-      if (start.date) {
-        d = start.date;
-      } else if (start.dateTime) {
-        const dt = new Date(start.dateTime);
-        d = dt.toLocaleDateString("en-CA");
-        tm = dt.toTimeString().slice(0, 5);
-      }
-      if (!d) return null;
-      return { t: (ev.summary || "Event").slice(0, 80), r: ev.summary || "", c: classifyText(ev.summary || ""), d, tm, pl: ev.location || null };
-    })
-    .filter(Boolean);
+  if (!r.ok) throw new Error((data && data.error && data.error.message) || "Google Calendar");
+  return data;
+}
+
+async function fetchCalendar(token) {
+  const timeMin = cairoDayStart().toISOString();
+  const timeMax = new Date(Date.now() + 60 * 86400000).toISOString();
+  const q = "timeMin=" + encodeURIComponent(timeMin) + "&timeMax=" + encodeURIComponent(timeMax) + "&maxResults=40&singleEvents=true&orderBy=startTime";
+  let ids = ["primary"];
+  try {
+    const list = await googleGet(token, "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=10");
+    const more = (list.items || []).map((c) => c.id).filter(Boolean);
+    if (more.length) ids = more.slice(0, 8);
+  } catch (e) {}
+  const seen = new Set();
+  const out = [];
+  let failed = null;
+  for (const id of ids) {
+    let data;
+    try {
+      data = await googleGet(token, "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(id) + "/events?" + q);
+    } catch (e) {
+      failed = e;
+      continue;
+    }
+    (data.items || []).forEach((ev) => {
+      const item = mapGoogleEvent(ev);
+      if (!item) return;
+      const key = item.t + "|" + item.d + "|" + (item.tm || "");
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  }
+  if (!out.length && failed) throw failed;
+  return out;
 }
 
 async function fetchClassroom(token) {

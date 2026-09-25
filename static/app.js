@@ -1731,7 +1731,7 @@ window.lazemImportItems = (items, source) => {
   if (added) { save(); render(); refreshCoach(); scheduleReminders(); }
   showToast(added ? sub(t("connImported"), { n: added, src: source || "" }) : t("connNone"));
 };
-window.lazemConnectError = () => showToast(t("connErr"));
+window.lazemConnectError = (msg) => showToast(msg || t("connErr"));
 const MEETINGS_MODE = "lazem.meetings.v1";
 function wantsMeetings() {
   const mode = localStorage.getItem(MEETINGS_MODE);
