@@ -122,7 +122,14 @@ async function add(page, text) {
   await page.evaluate(() => document.getElementById("signOutBtn").click());
   await new Promise((r) => setTimeout(r, 200));
 
-  await page.evaluate(() => { window.__mail = "marwa@smarteducation.ae"; document.getElementById("connOutlookBtn").click(); });
+  await page.evaluate(() => document.getElementById("connOutlookBtn").click());
+  await page.waitForSelector("#outlookEmail");
+  await page.type("#outlookEmail", "not-an-email");
+  await page.click("[data-sheet=outlook-save]");
+  ok("outlook needs an email", !(await signed()));
+  await page.click("#outlookEmail", { clickCount: 3 });
+  await page.type("#outlookEmail", "marwa@smarteducation.ae");
+  await page.click("[data-sheet=outlook-save]");
   await new Promise((r) => setTimeout(r, 300));
   ok("outlook user", (await email()) === "marwa@smarteducation.ae");
   await page.evaluate(() => window.lazemAuthUI({ email: "other@gmail.com" }));

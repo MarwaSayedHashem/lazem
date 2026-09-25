@@ -1825,18 +1825,19 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
     if (window.lazemConnect && window.lazemConnect.calendar) window.lazemConnect.calendar();
   });
   if (cls) cls.addEventListener("click", () => window.lazemConnect && window.lazemConnect.classroom && window.lazemConnect.classroom());
-  if (outlook) outlook.addEventListener("click", async () => {
+  if (outlook) outlook.addEventListener("click", () => {
     remember("outlook")();
-    holdAuth = true;
-    clearSign();
-    paintSignIn(null);
-    try {
-      if (window.lazemSync && window.lazemSync.signOut) await window.lazemSync.signOut();
-      if (window.lazemConnect && window.lazemConnect.outlook) await window.lazemConnect.outlook();
-    } finally {
-      holdAuth = false;
-      if (signMethod() !== "outlook") paintSignIn(null);
-    }
+    setMenu(false);
+    openSheet(
+      `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+      `<h3>${icon("calendar")} ${t("outlookTitle")}</h3>` +
+      `<p class="sheet-sub">${t("outlookHint")}</p>` +
+      `<div class="sheet-link"><input id="outlookEmail" type="email" autocomplete="email" placeholder="name@outlook.com" /></div>` +
+      `<div class="sheet-actions">` +
+      `<button class="sheet-btn" data-sheet="outlook-save">${t("outlookSave")}</button>` +
+      `<button class="sheet-btn ghost" data-sheet="close">${t("importCancel")}</button>` +
+      `</div>`
+    );
   });
   const meetings = document.getElementById("meetingsToggle");
   if (meetings) meetings.addEventListener("click", async () => {
@@ -1897,13 +1898,22 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
     return;
   }
   if (act === "outlook-save") {
-    const id = (document.getElementById("msClient")?.value || "").trim();
-    if (!id) { showToast(t("outlookNeedId")); return; }
-    localStorage.setItem("lazem.ms.client.v1", id);
-    const done = state._outlookResolve;
-    state._outlookResolve = null;
+    const raw = (document.getElementById("outlookEmail")?.value || "").trim();
+    if (!raw.includes("@") || raw.length < 6) { showToast(t("outlookNeedId")); return; }
+    localStorage.removeItem(SIGNED_OUT);
+    localStorage.setItem(SIGN_METHOD, "outlook");
+    localStorage.setItem(SIGN_LABEL, raw);
     closeSheet();
-    if (done) done(id);
+    holdAuth = true;
+    clearSign();
+    localStorage.setItem(SIGN_METHOD, "outlook");
+    localStorage.setItem(SIGN_LABEL, raw);
+    paintSignIn({ method: "outlook", label: raw });
+    setMenu(true);
+    const finish = () => { holdAuth = false; paintSignIn({ method: "outlook", label: raw }); };
+    const out = window.lazemSync && window.lazemSync.signOut && window.lazemSync.signOut();
+    if (out && out.then) out.then(finish, finish);
+    else finish();
     return;
   }
   if (act === "snooze") {

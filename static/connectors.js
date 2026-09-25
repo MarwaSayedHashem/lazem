@@ -98,8 +98,7 @@ async function loadMsal() {
 }
 
 async function connectOutlook() {
-  let clientId = msClientId();
-  if (!clientId && window.lazemOutlookSetup) clientId = await window.lazemOutlookSetup();
+  const clientId = msClientId();
   if (!clientId) return false;
   try {
     const PublicClientApplication = await loadMsal();
