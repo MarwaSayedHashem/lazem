@@ -896,6 +896,38 @@ footer a { color: var(--accent); }
 .acct-line .ic { width: 1rem; height: 1rem; color: var(--accent); }
 .acct-line b { color: var(--ink); }
 .data-btn.on .ic { color: var(--accent); }
+.connect-list { display: flex; flex-direction: column; gap: 0.45rem; }
+.connect-list .data-btn { width: 100%; }
+.meetings-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.7rem;
+  font-size: 0.92rem;
+}
+.switch {
+  flex: none;
+  width: 2.6rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  position: relative;
+  padding: 0;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  inset-inline-start: 0.12rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.switch.on { background: var(--accent); border-color: var(--accent); }
+.switch.on::after { inset-inline-start: auto; inset-inline-end: 0.12rem; background: var(--btn-fg); }
 
 /* ---------- Recurrence ---------- */
 .repeat-flag { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--accent); font-weight: 600; }

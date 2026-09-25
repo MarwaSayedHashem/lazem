@@ -755,6 +755,7 @@ function applyLang() {
   renderPinPicker();
   updateReminderUI();
   updateConverter();
+  paintMeetingsToggle();
 }
 
 function todayISO() {
@@ -1723,6 +1724,7 @@ window.lazemImportItems = (items, source) => {
       id: uid(), done: false, title: it.t || it.r || "Task", raw: it.r || it.t || "",
       category: it.c || "note", due: it.d || null, time: it.tm || null, amount: it.a || null,
       repeat: null, bill_kind: null, place: it.pl || null,
+      source: source === "Outlook" ? "outlook" : source === "Google Calendar" ? "google" : null,
     });
     added++;
   });
@@ -1730,8 +1732,39 @@ window.lazemImportItems = (items, source) => {
   showToast(added ? sub(t("connImported"), { n: added, src: source || "" }) : t("connNone"));
 };
 window.lazemConnectError = () => showToast(t("connErr"));
+const MEETINGS_MODE = "lazem.meetings.v1";
+function wantsMeetings() {
+  const mode = localStorage.getItem(MEETINGS_MODE);
+  if (mode === "on" || mode === "off") return mode === "on";
+  return localStorage.getItem("lazem.outlook.mode.v1") === "meetings";
+}
+function paintMeetingsToggle() {
+  const btn = document.getElementById("meetingsToggle");
+  const note = document.getElementById("meetingsNote");
+  const on = wantsMeetings();
+  if (btn) {
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-checked", on ? "true" : "false");
+  }
+  if (note) note.textContent = t(on ? "meetingsOn" : "meetingsOff");
+}
+window.lazemWantsMeetings = wantsMeetings;
+window.lazemSignedIn = () => showToast(t("signedIn"));
+window.lazemHideMeetings = () => {
+  const before = state.tasks.length;
+  state.tasks = state.tasks.filter((tk) => tk.source !== "outlook" && tk.source !== "google");
+  if (state.tasks.length !== before) {
+    save();
+    render();
+    refreshCoach();
+    scheduleReminders();
+    showToast(t("meetingsHidden"));
+  }
+};
+paintMeetingsToggle();
 window.lazemOutlookSetup = () => new Promise((resolve) => {
   state._outlookResolve = resolve;
+  setMenu(false);
   const uri = location.origin + location.pathname;
   openSheet(
     `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
@@ -1749,9 +1782,23 @@ window.lazemOutlookSetup = () => new Promise((resolve) => {
   const cal = document.getElementById("connCalBtn");
   const cls = document.getElementById("connClassBtn");
   const outlook = document.getElementById("connOutlookBtn");
-  if (cal) cal.addEventListener("click", () => window.lazemConnect && window.lazemConnect.calendar && window.lazemConnect.calendar());
+  const remember = (name) => () => { localStorage.setItem("lazem.calendar.last", name); };
+  if (cal) cal.addEventListener("click", () => {
+    remember("google")();
+    if (window.lazemConnect && window.lazemConnect.calendar) window.lazemConnect.calendar();
+  });
   if (cls) cls.addEventListener("click", () => window.lazemConnect && window.lazemConnect.classroom && window.lazemConnect.classroom());
-  if (outlook) outlook.addEventListener("click", () => window.lazemConnect && window.lazemConnect.outlook && window.lazemConnect.outlook());
+  if (outlook) outlook.addEventListener("click", () => {
+    remember("outlook")();
+    if (window.lazemConnect && window.lazemConnect.outlook) window.lazemConnect.outlook();
+  });
+  const meetings = document.getElementById("meetingsToggle");
+  if (meetings) meetings.addEventListener("click", () => {
+    const next = !wantsMeetings();
+    localStorage.setItem(MEETINGS_MODE, next ? "on" : "off");
+    paintMeetingsToggle();
+    if (!next) window.lazemHideMeetings();
+  });
 })();
 
 document.getElementById("shareBtn").addEventListener("click", () => {

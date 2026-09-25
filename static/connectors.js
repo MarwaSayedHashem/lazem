@@ -69,10 +69,16 @@ function getToken(scope) {
 async function connect(kind) {
   try {
     const token = await getToken(SCOPES[kind]);
+    if (kind === "calendar" && window.lazemWantsMeetings && !window.lazemWantsMeetings()) {
+      if (window.lazemSignedIn) window.lazemSignedIn();
+      return true;
+    }
     const items = kind === "calendar" ? await fetchCalendar(token) : await fetchClassroom(token);
     if (window.lazemImportItems) window.lazemImportItems(items, kind === "calendar" ? "Google Calendar" : "Google Classroom");
+    return true;
   } catch (e) {
     if (window.lazemConnectError) window.lazemConnectError();
+    return false;
   }
 }
 
@@ -96,7 +102,7 @@ async function loadMsal() {
 async function connectOutlook() {
   let clientId = msClientId();
   if (!clientId && window.lazemOutlookSetup) clientId = await window.lazemOutlookSetup();
-  if (!clientId) return;
+  if (!clientId) return false;
   try {
     const PublicClientApplication = await loadMsal();
     const app = new PublicClientApplication({
@@ -111,10 +117,16 @@ async function connectOutlook() {
     const result = await app.loginPopup({ scopes: ["User.Read", "Calendars.Read"] });
     const token = result && result.accessToken;
     if (!token) throw new Error("no token");
+    if (window.lazemWantsMeetings && !window.lazemWantsMeetings()) {
+      if (window.lazemSignedIn) window.lazemSignedIn();
+      return true;
+    }
     const items = await fetchOutlook(token);
     if (window.lazemImportItems) window.lazemImportItems(items, "Outlook");
+    return true;
   } catch (e) {
     if (window.lazemConnectError) window.lazemConnectError();
+    return false;
   }
 }
 

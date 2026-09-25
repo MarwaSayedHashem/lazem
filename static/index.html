@@ -79,12 +79,16 @@
 
         <div id="connectArea" hidden>
           <p class="drawer-h"><i data-ic="cloud"></i><span data-i18n="menuConnect">Connections</span></p>
-          <div class="data-actions">
+          <div class="connect-list">
             <button type="button" class="data-btn" id="connOutlookBtn"><i data-ic="calendar"></i><span data-i18n="connOutlook">Outlook</span></button>
             <button type="button" class="data-btn" id="connCalBtn"><i data-ic="calendar"></i><span data-i18n="connCalendar">Google Calendar</span></button>
             <button type="button" class="data-btn" id="connClassBtn"><i data-ic="school"></i><span data-i18n="connClassroom">Google Classroom</span></button>
           </div>
-          <p class="remind-note" data-i18n="connNote">Connect once to pull your events and assignments in.</p>
+          <div class="meetings-switch">
+            <span id="meetingsLabel" data-i18n="showMeetings">Show meetings on Lazem</span>
+            <button type="button" class="switch" id="meetingsToggle" role="switch" aria-checked="false" aria-labelledby="meetingsLabel"></button>
+          </div>
+          <p class="remind-note" id="meetingsNote" data-i18n="meetingsOff">Sign in only. Meetings stay in the calendar.</p>
         </div>
 
         <p class="drawer-h"><i data-ic="coins"></i><span data-i18n="menuInstall">Installments & bills</span></p>
