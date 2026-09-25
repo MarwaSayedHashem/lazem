@@ -118,12 +118,27 @@ async function bootstrap() {
     return (cred && cred.accessToken) || (result && result._tokenResponse && result._tokenResponse.oauthAccessToken) || "";
   }
 
+  function phoneBrowser() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  }
+
+  function googleSignIn(provider) {
+    if (phoneBrowser()) return authFns.signInWithRedirect(auth, provider);
+    return authFns.signInWithPopup(auth, provider).catch((e) => {
+      if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) {
+        return authFns.signInWithRedirect(auth, provider);
+      }
+      throw e;
+    });
+  }
+
   async function pullCalendar() {
     const provider = new authFns.GoogleAuthProvider();
     provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
     provider.setCustomParameters({ include_granted_scopes: "true" });
     try {
-      const result = await authFns.signInWithPopup(auth, provider);
+      const result = await googleSignIn(provider);
+      if (!result) return;
       const token = calendarToken(result);
       if (token && window.lazemPullGoogleCalendar) {
         await window.lazemPullGoogleCalendar(token);
@@ -131,18 +146,36 @@ async function bootstrap() {
       }
       if (window.lazemCalendarStatus) window.lazemCalendarStatus(window.lazemT ? window.lazemT("calendarMiss") : "");
     } catch (e) {
-      if (e && e.code === "auth/popup-closed-by-user") return;
+      if (e && (e.code === "auth/popup-closed-by-user" || e.code === "auth/popup-blocked")) return;
       if (window.lazemCalendarStatus) window.lazemCalendarStatus((e && e.message) || (window.lazemT ? window.lazemT("connErr") : ""));
     }
   }
 
+  authFns.getRedirectResult(auth).then(async (result) => {
+    if (!result || !(window.lazemWantsMeetings && window.lazemWantsMeetings())) return;
+    const token = calendarToken(result);
+    if (token && window.lazemPullGoogleCalendar) {
+      sessionStorage.removeItem("lazem.cal.redirect");
+      await window.lazemPullGoogleCalendar(token);
+      return;
+    }
+    if (sessionStorage.getItem("lazem.cal.redirect")) {
+      sessionStorage.removeItem("lazem.cal.redirect");
+      if (window.lazemCalendarStatus) window.lazemCalendarStatus(window.lazemT ? window.lazemT("calendarMiss") : "");
+      return;
+    }
+    sessionStorage.setItem("lazem.cal.redirect", "1");
+    return pullCalendar();
+  }).catch(() => {});
+
   window.lazemSync = {
     signIn() {
       const provider = new authFns.GoogleAuthProvider();
-      return authFns.signInWithPopup(auth, provider).then(() => {
+      return googleSignIn(provider).then((result) => {
+        if (!result) return;
         if (window.lazemWantsMeetings && window.lazemWantsMeetings()) return pullCalendar();
       }).catch((e) => {
-        if (e && e.code === "auth/popup-closed-by-user") return;
+        if (e && (e.code === "auth/popup-closed-by-user" || e.code === "auth/popup-blocked")) return;
         if (window.lazemToast) window.lazemToast((e && e.message) || (window.lazemT ? window.lazemT("connErr") : "Couldn't sign in"));
       });
     },
