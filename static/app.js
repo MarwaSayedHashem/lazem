@@ -1882,6 +1882,18 @@ document.getElementById("sheetCard").addEventListener("click", async (e) => {
   if (!btn) return;
   const act = btn.dataset.sheet;
   if (act === "close") { closeSheet(); return; }
+  if (act === "safari-copy") {
+    const input = document.getElementById("safariUrl");
+    const value = input ? input.value : location.href;
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(value);
+      else if (input) { input.select(); document.execCommand("copy"); }
+      showToast(t("copied"));
+    } catch {
+      if (input) input.select();
+    }
+    return;
+  }
   if (act === "phone-save") {
     const raw = (document.getElementById("phoneInput")?.value || "").trim();
     const digits = raw.replace(/[^\d+]/g, "");
@@ -2572,6 +2584,16 @@ function clearSign() {
     if (window.lazemSync && window.lazemSync.signIn) window.lazemSync.signIn();
     else showToast(t("connErr"));
   });
+  window.lazemNeedsSafari = () => {
+    setMenu(false);
+    openSheet(
+      `<button class="sheet-close" data-sheet="close" aria-label="Close">${icon("close")}</button>` +
+      `<h3>${t("signSafariTitle")}</h3>` +
+      `<p class="sheet-sub">${t("signSafariHint")}</p>` +
+      `<div class="sheet-link"><input id="safariUrl" readonly value="${escapeHtml(location.href.split("#")[0])}" /></div>` +
+      `<div class="sheet-actions"><button class="sheet-btn" data-sheet="safari-copy">${t("copy")}</button></div>`
+    );
+  };
   if (outBtn) outBtn.addEventListener("click", async () => {
     holdAuth = true;
     localStorage.setItem(SIGNED_OUT, "1");

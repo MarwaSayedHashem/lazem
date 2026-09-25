@@ -118,15 +118,19 @@ async function bootstrap() {
     return (cred && cred.accessToken) || (result && result._tokenResponse && result._tokenResponse.oauthAccessToken) || "";
   }
 
-  function phoneBrowser() {
-    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  function inAppBrowser() {
+    return /WhatsApp|FBAN|FBAV|Instagram|Line\/|Twitter|LinkedInApp|Snapchat/i.test(navigator.userAgent || "");
   }
 
   function googleSignIn(provider) {
-    if (phoneBrowser()) return authFns.signInWithRedirect(auth, provider);
+    if (inAppBrowser()) {
+      if (window.lazemNeedsSafari) window.lazemNeedsSafari();
+      return Promise.resolve(null);
+    }
     return authFns.signInWithPopup(auth, provider).catch((e) => {
       if (e && (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment")) {
-        return authFns.signInWithRedirect(auth, provider);
+        if (window.lazemNeedsSafari) window.lazemNeedsSafari();
+        return null;
       }
       throw e;
     });
